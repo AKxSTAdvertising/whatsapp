@@ -316,6 +316,7 @@
   }catch(e){cloudReady=false;document.body.classList.add('auth-locked');$('authGate').hidden=false;$('loginError').textContent='Unable to load private leads: '+e.message;}
  }
  async function bootstrap(){
+  try{await window.UnboxedCloud?.ready?.()}catch(e){$('loginError').textContent='Supabase connection setup failed: '+e.message;return}
   bind();updateNavigation();render();
   $('loginForm').addEventListener('submit',async e=>{
    e.preventDefault();const b=$('loginButton');b.disabled=true;b.textContent='Signing in…';$('loginError').textContent='';
