@@ -83,6 +83,29 @@
   $('pageSummary').textContent=list.length?((page-1)*per+1)+'–'+Math.min(page*per,list.length)+' of '+list.length+' leads':'0 leads';$('pageNumber').textContent=page+' / '+pages;$('prevPage').disabled=page===1;$('nextPage').disabled=page===pages;
   due.sort((a,b)=>a.followup.localeCompare(b.followup));$('dueList').innerHTML=due.length?due.slice(0,5).map(l=>'<div class="due-item"><div><strong>'+safe(l['Business Name']||'Business')+'</strong><small>'+safe(l.followup)+' · '+safe(l.Niche||'Follow-up')+'</small></div><button class="mini-btn" data-open="'+safe(l.id)+'">Open →</button></div>').join(''):'<p class="due-none">No follow-ups due. Set a follow-up date on a lead to see it here.</p>';
  }
+ function whatsappFiltered(){
+  const q=$('waSearch').value.trim().toLowerCase(),st=$('waStatusFilter').value,permission=$('waPermissionFilter').value;
+  return leads.filter(l=>(!q||[l['Business Name'],l.Phone,l.Niche].some(v=>String(v||'').toLowerCase().includes(q)))&&(!st||l.status===st)&&(permission===''||(permission==='yes'&&l.consent)||(permission==='no'&&!l.consent)));
+ }
+ function renderWhatsAppPage(){
+  const list=whatsappFiltered();
+  $('waRows').innerHTML=list.map(l=>'<tr><td><input type="checkbox" data-wa-select="'+safe(l.id)+'" '+(selected.has(l.id)?'checked':'')+'></td><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l.status,'status')+'</td><td>'+ (l.consent?'<span class="chip interested">Confirmed</span>':'<span class="chip new">Not confirmed</span>') +'</td><td>'+ (isNew(l)?'First message':'Follow-up') +'</td><td><button class="mini-btn mini-wa" data-whatsapp="'+safe(l.id)+'" '+(!l.consent?'title="Confirm permission for this lead first"':'')+'>Open WhatsApp ↗</button></td></tr>').join('');
+  const count=list.filter(l=>selected.has(l.id)).length;
+  $('waSelectedCount').textContent=selected.size+' selected';
+  $('waBulkConsent').disabled=!cloudReady||selected.size===0;
+  $('waSelectAll').checked=list.length>0&&count===list.length;
+  $('waSelectAll').indeterminate=count>0&&count<list.length;
+  $('waSelectPage').checked=list.length>0&&count===list.length;
+  $('waSelectPage').indeterminate=count>0&&count<list.length;
+  $('waEmpty').hidden=list.length!==0;
+ }
+ function confirmBulkPermission(){
+  const chosen=leads.filter(l=>selected.has(l.id));
+  if(!chosen.length){notify('Select contacts first.');return}
+  if(!confirm('Confirm WhatsApp permission for '+chosen.length+' selected contact(s)? Continue only if EACH selected contact has agreed to receive messages.'))return;
+  chosen.forEach(l=>{l.consent=true;l.updated=stamp()});
+  save();render();renderWhatsAppPage();notify('Permission recorded for '+chosen.length+' selected contacts.');
+ }
  function updateSelectionControls(list,visible){
    const matching=new Set(list.map(x=>x.id));
    const selectedMatching=list.filter(x=>selected.has(x.id)).length;
@@ -180,7 +203,7 @@
  function activeMessage(l){return (isNew(l)?$('detailPitch').value:$('detailFollowupPitch').value).trim()}
  function directWhatsApp(l,message){
   const phone=cleanNumber(l.Phone);if(!phone){notify('Please enter a valid phone number.');return}
-  if(!l.consent){openLead(l.id);notify('Please confirm WhatsApp contact permission in Manage first.');return}
+  if(!l.consent){notify('Confirm this contact\'s permission in WhatsApp Outreach first.');return}
   const suffix=message?'&text='+encodeURIComponent(message):'';
   const nativeUrl='whatsapp://send?phone='+phone+suffix;
   const webUrl='https://web.whatsapp.com/send?phone='+phone+suffix;
@@ -203,7 +226,10 @@
  }
  function updateNavigation(){
   document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active',a.dataset.nav===activeView));
-  selected.clear();page=1;render()
+  const shell=document.querySelector('.app-shell');
+  if(shell)shell.dataset.page=['new','contacted','all'].includes(activeView)?'leads':activeView;
+  selected.clear();page=1;render();
+  if(activeView==='whatsapp')renderWhatsAppPage();
  }
  function bind(){for(const id of ['importTop','importEmpty','importSettings'])$(id).addEventListener('click',()=>$('fileInput').click());
   $('fileInput').addEventListener('change',async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024){notify('File is too large (limit: 10 MB).');return}try{const t=await f.text();if(f.name.toLowerCase().endsWith('.json'))await handleJSON(t);else importCSV(t)}catch(err){notify('Import failed: '+err.message)}});
@@ -213,6 +239,11 @@
   $('singleBackdrop').addEventListener('click',e=>{if(e.target===$('singleBackdrop'))closeSingle()});
   $('singleForm').addEventListener('submit',saveSingle);
   $('bulkDeleteBtn').addEventListener('click',bulkDelete);
+  $('waBulkConsent').addEventListener('click',confirmBulkPermission);
+  $('waSelectAll').addEventListener('change',e=>{for(const l of whatsappFiltered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}renderWhatsAppPage()});
+  $('waSelectPage').addEventListener('change',e=>{for(const l of whatsappFiltered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}renderWhatsAppPage()});
+  $('waRows').addEventListener('change',e=>{if(!e.target.matches('[data-wa-select]'))return;if(e.target.checked)selected.add(e.target.dataset.waSelect);else selected.delete(e.target.dataset.waSelect);renderWhatsAppPage()});
+  for(const id of ['waSearch','waStatusFilter','waPermissionFilter'])$(id).addEventListener(id==='waSearch'?'input':'change',renderWhatsAppPage);
   $('selectPage').addEventListener('change',e=>{const list=filtered().slice((page-1)*15,page*15);for(const l of list){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}render()});
   $('selectAllMatching').addEventListener('change',e=>{for(const l of filtered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}render()});
   $('leadRows').addEventListener('change',e=>{if(!e.target.matches('[data-select]'))return;if(e.target.checked)selected.add(e.target.dataset.select);else selected.delete(e.target.dataset.select);render()});
@@ -227,7 +258,7 @@
   $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){persistModal();notify('Changes queued for Supabase sync.')}if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){$(isNew(l)?'detailPitch':'detailFollowupPitch').select();notify('Select and copy your message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='markReplied')markAction('replied');if(id==='markFollowup')markAction('followup');if(id==='suggestFirst')$('detailPitch').value=guessPitch(leads.find(x=>x.id===activeId));if(id==='suggestSecond')$('detailFollowupPitch').value=followupSuggestion(leads.find(x=>x.id===activeId))});
   $('openFirst').addEventListener('click',()=>{const l=filtered()[0];if(l)openLead(l.id);else notify('Import leads first.')});
   $('mobileMenu').addEventListener('click',()=>$('mobileMenu').closest('.app-shell').querySelector('.sidebar').classList.toggle('is-open'));
-  document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{const nav=a.dataset.nav;if(['new','contacted','all'].includes(nav)){activeView=nav;updateNavigation()}else{document.querySelectorAll('.nav-link').forEach(x=>x.classList.remove('active'));a.classList.add('active')}document.querySelector('.sidebar').classList.remove('is-open')}));
+  document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{activeView=a.dataset.nav;updateNavigation();document.querySelector('.sidebar').classList.remove('is-open')}));
  }
   async function enterCloud(){
   if(!window.UnboxedCloud||window.UnboxedCloud.error){$('loginError').textContent=window.UnboxedCloud?.error||'Could not load Supabase library.';return}
