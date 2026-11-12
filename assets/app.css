@@ -86,3 +86,6 @@ body.auth-locked .app-shell{display:none}
 .shared-message-preview{white-space:pre-wrap;background:#f7f7fb;border:1px solid #ececf3;border-radius:9px;padding:13px;line-height:1.55;font-size:12px;margin:12px 0}
 .app-shell[data-page="messages"] .page-heading{display:none}
 @media(max-width:800px){.template-grid,.message-audience-grid{grid-template-columns:1fr}.message-center .section-header{align-items:start;flex-direction:column}.message-center .section-header .btn{width:100%}}
+
+/* Hide the Message Manager outside its own dedicated page. */
+.app-shell[data-page="overview"] #messageCenter,.app-shell[data-page="leads"] #messageCenter,.app-shell[data-page="followups"] #messageCenter,.app-shell[data-page="settings"] #messageCenter,.app-shell[data-page="whatsapp"] #messageCenter{display:none}
