@@ -2,9 +2,9 @@
 /* UnboxedThinking CRM — browser-local MVP. Never auto-sends messages or uploads lead data. */
 (()=> {
  const KEY='unboxedthinking.crm.v1';
- const STATUS=['New','Contacted','Interested','Follow-up','Meeting booked','Won','Not interested'];
+ const STATUS=['New','Contacted','Replied','Interested','Follow-up','Meeting booked','Won','Not interested'];
  const HEADERS=['Business Name','Niche','Founder','Phone','Email','Address','Website','Rating','Reviews','Website Status','Digital Score','Lead Priority'];
- let leads=[],page=1,activeId=null,toastTimer=null,cloudReady=false,syncQueue=Promise.resolve(),synced=new Map(),syncPending=0,selected=new Set(),bulkBusy=false;
+ let leads=[],page=1,activeId=null,toastTimer=null,cloudReady=false,syncQueue=Promise.resolve(),synced=new Map(),syncPending=0,selected=new Set(),bulkBusy=false,activeView='new';
  const $=id=>document.getElementById(id);
  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const val=(o,k)=>String(o?.[k]??'').trim();
@@ -39,7 +39,7 @@
   if(quoted)throw new Error('CSV has an unclosed quotation mark.');
   row.push(field);if(row.some(v=>v.trim()))rows.push(row);return rows
  }
- function normalize(o){const d={};for(const k of HEADERS)d[k]=val(o,k);return {...d,id:String(o.id||uid()),status:STATUS.includes(o.status)?o.status:'New',followup:String(o.followup||''),notes:String(o.notes||''),consent:o.consent===true,updated:String(o.updated||stamp())}}
+ function normalize(o){const d={};for(const k of HEADERS)d[k]=val(o,k);return {...d,id:String(o.id||uid()),status:STATUS.includes(o.status)?o.status:'New',followup:String(o.followup||''),notes:String(o.notes||''),consent:o.consent===true,updated:String(o.updated||stamp()),firstDraft:String(o.firstDraft||''),followupDraft:String(o.followupDraft||''),sentAt:String(o.sentAt||''),repliedAt:String(o.repliedAt||''),followupSentAt:String(o.followupSentAt||'')}}
  function importCSV(text){const rows=parseCSV(text);if(rows.length<2)throw new Error('CSV does not contain any lead rows.');
   const header=rows.shift().map(h=>h.trim().toLowerCase().replace(/[^a-z0-9]/g,''));
   const idx=header.indexOf('phone');if(idx<0)throw new Error('The CSV needs a Phone column.');
@@ -56,25 +56,28 @@
   if(!confirm('Restore '+arr.length+' leads? This will REPLACE your existing cloud CRM leads. Export a full backup first.'))return;
   const restored=arr.filter(o=>o&&typeof o==='object'&&truthyPhone(o.Phone)).map(normalize);
   await syncQueue;await window.UnboxedCloud.clear();await window.UnboxedCloud.put(restored);
-  leads=restored;markSynced();page=1;render();notify('Restored '+restored.length+' leads to Supabase.')}
+  leads=restored;selected.clear();markSynced();page=1;render();notify('Restored '+restored.length+' leads to Supabase.')}
  function csvCell(x){let s=String(x??'');if(/^[\s]*[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
  function download(name,blob){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  function exportCSV(){if(!leads.length){notify('Import leads first.');return}
-  const cols=[...HEADERS,'Status','Follow-up Date','Notes','Contact Permission','Updated'];
-  const out=[cols.map(csvCell).join(',')];for(const l of leads){out.push([...HEADERS.map(k=>l[k]),l.status,l.followup,l.notes,l.consent?'Yes':'No',l.updated].map(csvCell).join(','))}
+  const cols=[...HEADERS,'Status','Follow-up Date','Notes','Contact Permission','First Draft','Followup Draft','Sent At','Replied At','Followup Sent At','Updated'];
+  const out=[cols.map(csvCell).join(',')];for(const l of leads){out.push([...HEADERS.map(k=>l[k]),l.status,l.followup,l.notes,l.consent?'Yes':'No',l.firstDraft,l.followupDraft,l.sentAt,l.repliedAt,l.followupSentAt,l.updated].map(csvCell).join(','))}
   download('unboxedthinking-leads-'+day()+'.csv',new Blob(['\uFEFF'+out.join('\r\n')],{type:'text/csv;charset=utf-8'}));notify('CSV exported.')}
  function backup(){if(!leads.length){notify('No leads to back up.');return}download('unboxedthinking-full-backup-'+day()+'.json',new Blob([JSON.stringify({version:1,exportedAt:stamp(),leads},null,2)],{type:'application/json'}));notify('Full backup downloaded.')}
  function filtered(){const q=$('search').value.trim().toLowerCase(),st=$('statusFilter').value,pr=$('priorityFilter').value,web=$('websiteFilter').value,sort=$('sort').value;
-  let result=leads.filter(l=>(!q||[l['Business Name'],l.Niche,l.Founder,l.Phone,l.Address,l.Email].some(v=>String(v||'').toLowerCase().includes(q)))&&(!st||l.status===st)&&(!pr||l['Lead Priority']===pr)&&(!web||l['Website Status']===web));
+  let result=leads.filter(l=>(activeView==='all'||(activeView==='new'?l.status==='New':l.status!=='New'))&&(!q||[l['Business Name'],l.Niche,l.Founder,l.Phone,l.Address,l.Email].some(v=>String(v||'').toLowerCase().includes(q)))&&(!st||l.status===st)&&(!pr||l['Lead Priority']===pr)&&(!web||l['Website Status']===web));
   result.sort((a,b)=>sort==='name'?val(a,'Business Name').localeCompare(val(b,'Business Name')):sort==='recent'?val(b,'updated').localeCompare(val(a,'updated')):sort==='followup'?(a.followup||'9999').localeCompare(b.followup||'9999'):priorityRank(b['Lead Priority'])-priorityRank(a['Lead Priority']));
   return result
  }
  function options(select,values,label){const keep=select.value;select.innerHTML='<option value="">All '+safe(label)+'</option>'+[...new Set(values.filter(Boolean))].sort().map(v=>'<option value="'+safe(v)+'">'+safe(v)+'</option>').join('');select.value=keep}
- function render(){let today=day(),contacted=leads.filter(x=>x.status!=='New'&&x.status!=='Not interested').length,interested=leads.filter(x=>['Interested','Meeting booked','Won'].includes(x.status)).length,due=leads.filter(x=>x.followup&&x.followup<=today&&!['Won','Not interested'].includes(x.status));
+ function render(){let today=day(),contacted=leads.filter(x=>x.status!=='New').length,interested=leads.filter(x=>['Interested','Meeting booked','Won'].includes(x.status)).length,due=leads.filter(x=>x.followup&&x.followup<=today&&!['Won','Not interested'].includes(x.status));
   $('statTotal').textContent=leads.length.toLocaleString('en-IN');$('statContacted').textContent=contacted.toLocaleString('en-IN');$('statInterested').textContent=interested.toLocaleString('en-IN');$('statDue').textContent=due.length.toLocaleString('en-IN');$('leadCount').textContent=leads.length.toLocaleString('en-IN');
+  $('contactedNavCount').textContent=contacted.toLocaleString('en-IN');
+  $('directoryHeading').textContent={new:'New leads',contacted:'Contacted leads',all:'All leads'}[activeView];
+  $('directoryHint').textContent={new:'Write your first message; after sending, click Mark as Sent.',contacted:'Use a separate second message and manually record replies.',all:'Your entire pipeline.'}[activeView];
   options($('priorityFilter'),leads.map(l=>l['Lead Priority']),'priorities');options($('websiteFilter'),leads.map(l=>l['Website Status']),'website statuses');
   const list=filtered(),per=15,pages=Math.max(1,Math.ceil(list.length/per));page=Math.min(page,pages);const slice=list.slice((page-1)*per,page*per);
-  $('leadRows').innerHTML=slice.map(l=>'<tr><td><input class="lead-select" type="checkbox" data-select="'+safe(l.id)+'" aria-label="Select '+safe(l['Business Name']||'lead')+'" '+(selected.has(l.id)?'checked':'')+'></td><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l['Lead Priority'],'priority')+'</td><td>'+safe(l['Website Status']||'Unknown')+'</td><td>'+badge(l.status,'status')+'</td><td>'+safe(l.followup||'—')+'</td><td><div class="row-actions"><button class="mini-btn" data-open="'+safe(l.id)+'">View / outreach</button></div></td></tr>').join('');
+  $('leadRows').innerHTML=slice.map(l=>'<tr><td><input class="lead-select" type="checkbox" data-select="'+safe(l.id)+'" aria-label="Select '+safe(l['Business Name']||'lead')+'" '+(selected.has(l.id)?'checked':'')+'></td><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l['Lead Priority'],'priority')+'</td><td>'+safe(l['Website Status']||'Unknown')+'</td><td>'+badge(l.status,'status')+'</td><td>'+safe(l.followup||'—')+'</td><td><div class="row-actions"><button class="mini-btn mini-wa" data-whatsapp="'+safe(l.id)+'">WhatsApp ↗</button><button class="mini-btn" data-open="'+safe(l.id)+'">Manage</button></div></td></tr>').join('');
   updateSelectionControls(list,slice);
   $('emptyState').hidden=list.length!==0;$('emptyMessage').textContent=leads.length?'No matching leads. Change the filters to see more.':'Import your cleaned CSV to start your outreach workspace.';$('importEmpty').hidden=leads.length>0;
   $('pageSummary').textContent=list.length?((page-1)*per+1)+'–'+Math.min(page*per,list.length)+' of '+list.length+' leads':'0 leads';$('pageNumber').textContent=page+' / '+pages;$('prevPage').disabled=page===1;$('nextPage').disabled=page===pages;
