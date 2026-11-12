@@ -44,3 +44,15 @@ body.auth-locked .app-shell{display:none}
 .whatsapp-fallback{padding:10px 0;text-align:center}
 .whatsapp-fallback a{color:#19764b;text-decoration:underline;font-size:12px}
 @media(max-width:575px){.workflow-actions .btn{min-width:100%}.row-actions{flex-wrap:nowrap}.draft-actions{align-items:flex-start}.directory-sub{font-size:11px}}
+
+/* Dedicated module pages: one workspace view at a time */
+.app-shell[data-page="overview"] #leads,.app-shell[data-page="overview"] #followups,.app-shell[data-page="overview"] #settings,.app-shell[data-page="overview"] #whatsappPage{display:none}
+.app-shell[data-page="overview"] .privacy-note,.app-shell[data-page="overview"] .stats{display:block}
+.app-shell[data-page="leads"] #overview,.app-shell[data-page="leads"] .privacy-note,.app-shell[data-page="leads"] .stats,.app-shell[data-page="leads"] #followups,.app-shell[data-page="leads"] #settings,.app-shell[data-page="leads"] #whatsappPage{display:none}
+.app-shell[data-page="followups"] #overview,.app-shell[data-page="followups"] .privacy-note,.app-shell[data-page="followups"] .stats,.app-shell[data-page="followups"] #leads,.app-shell[data-page="followups"] #settings,.app-shell[data-page="followups"] #whatsappPage{display:none}
+.app-shell[data-page="settings"] #overview,.app-shell[data-page="settings"] .privacy-note,.app-shell[data-page="settings"] .stats,.app-shell[data-page="settings"] #leads,.app-shell[data-page="settings"] #followups,.app-shell[data-page="settings"] #whatsappPage{display:none}
+.app-shell[data-page="whatsapp"] #overview,.app-shell[data-page="whatsapp"] .privacy-note,.app-shell[data-page="whatsapp"] .stats,.app-shell[data-page="whatsapp"] #leads,.app-shell[data-page="whatsapp"] #followups,.app-shell[data-page="whatsapp"] #settings{display:none}
+.wa-bulk-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px}
+.wa-bulk-bar #waSelectedCount{margin-left:auto;color:#7e8498;font-size:12px}
+.whatsapp-page .workflow-hint{margin-top:15px}
+@media(max-width:575px){.wa-bulk-bar #waSelectedCount{margin-left:0}.wa-bulk-bar #waBulkConsent{width:100%}}
