@@ -5,20 +5,19 @@
  const publicKey='sb_publishable_V3zIK8kZUZ4E4wJ2TnUi8A_2jv-Qty4';
  const table='unboxed_crm_leads';
  let client=null;
- const loadFallback=()=>new Promise((resolve,reject)=>{
-  const script=document.createElement('script');
-  script.src='https://unpkg.com/@supabase/supabase-js@2';
-  script.onload=()=>resolve();
-  script.onerror=()=>reject(new Error('Supabase SDK could not load from either CDN. Check your internet connection and reload.'));
+ const loadScript=url=>new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src=url;script.async=true;
+  script.onload=()=>resolve();script.onerror=()=>{script.remove();reject(new Error('Could not load '+url));};
   document.head.appendChild(script);
  });
  const clientReady=(async()=>{
   let sdk=window.supabase;
   if(!sdk||typeof sdk.createClient!=='function'){
-   await loadFallback();
-   sdk=window.supabase;
+   const cdns=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.js','https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'];
+   let lastError;
+   for(const url of cdns){try{await loadScript(url);sdk=window.supabase;if(sdk&&typeof sdk.createClient==='function')break;}catch(e){lastError=e;}}
+   if(!sdk||typeof sdk.createClient!=='function')throw new Error('Supabase SDK unavailable. CDN loading failed: '+(lastError?.message||'SDK global missing'));
   }
-  if(!sdk||typeof sdk.createClient!=='function')throw new Error('Supabase SDK loaded, but createClient is unavailable.');
   client=sdk.createClient(endpoint,publicKey,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}});
   return client;
  })();
