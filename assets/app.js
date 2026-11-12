@@ -144,27 +144,67 @@
  function guessPitch(l){const name=l['Business Name']||'your business',niche=(l.Niche||'business').toLowerCase(),noWebsite=/no|missing|not|none/i.test(l['Website Status']||'');
   return 'Hi, I came across '+name+' and liked what you are doing in '+niche+'. I am reaching out from UnboxedThinking. '+(noWebsite?'We help growing businesses build clean, mobile-friendly websites that turn visitors into enquiries.':'We help businesses improve their website experience and digital presence to generate more enquiries.')+' Would you be open to a quick conversation? If not, no worries — I will not follow up.'}
  function websiteLink(raw){try{let x=String(raw||'').trim();if(!x)return '';if(!/^https?:\/\//i.test(x))x='https://'+x;const u=new URL(x);return ['https:','http:'].includes(u.protocol)?u.href:''}catch(e){return ''}}
- function openLead(id){const l=leads.find(x=>x.id===id);if(!l)return;activeId=l.id;$('detailTitle').textContent=l['Business Name']||'Business';
-  const link=websiteLink(l.Website);$('detailContent').innerHTML='<div class="detail-meta">'+
+
+ function followupSuggestion(l){return 'Hi, I wanted to follow up on my earlier message about '+(l['Business Name']||'your business')+'. Would you be open to a short conversation? No worries if not.'}
+ function isNew(l){return l.status==='New'}
+ function currentDraft(l){return isNew(l)?l.firstDraft:l.followupDraft}
+ function openLead(id){
+  const l=leads.find(x=>x.id===id);if(!l)return;activeId=l.id;
+  $('detailTitle').textContent=l['Business Name']||'Business';
+  const link=websiteLink(l.Website);
+  $('detailContent').innerHTML='<div class="detail-meta">'+
    '<div><span>Phone</span><strong>'+safe(l.Phone)+'</strong></div><div><span>Niche</span><strong>'+safe(l.Niche||'—')+'</strong></div>'+
-   '<div><span>Website</span><strong>'+(link?'<a href="'+safe(link)+'" target="_blank" rel="noopener noreferrer">View website ↗</a>':safe(l['Website Status']||'—'))+'</strong></div><div><span>Priority</span><strong>'+safe(l['Lead Priority']||'—')+'</strong></div>'+
-   '<div><span>Founder</span><strong>'+safe(l.Founder||'—')+'</strong></div><div><span>Digital score</span><strong>'+safe(l['Digital Score']||'—')+'</strong></div></div>'+
-   '<div class="detail-fields"><div class="field"><label for="detailStatus">Lead status</label><select id="detailStatus">'+STATUS.map(s=>'<option '+(l.status===s?'selected':'')+'>'+safe(s)+'</option>').join('')+'</select></div>'+
+   '<div><span>Website</span><strong>'+(link?'<a href="'+safe(link)+'" target="_blank" rel="noopener noreferrer">View website ↗</a>':safe(l['Website Status']||'—'))+'</strong></div>'+
+   '<div><span>Priority</span><strong>'+safe(l['Lead Priority']||'—')+'</strong></div>'+
+   '<div><span>First sent</span><strong>'+safe(l.sentAt?new Date(l.sentAt).toLocaleString():'Not marked')+'</strong></div>'+
+   '<div><span>Reply received</span><strong>'+safe(l.repliedAt?new Date(l.repliedAt).toLocaleString():'Not marked')+'</strong></div></div>'+
+   '<div class="detail-fields"><div class="field"><label for="detailStatus">Lead status</label><select id="detailStatus">'+STATUS.map(st=>'<option '+(l.status===st?'selected':'')+'>'+safe(st)+'</option>').join('')+'</select></div>'+
    '<div class="field"><label for="detailDate">Next follow-up</label><input type="date" id="detailDate" value="'+safe(l.followup)+'"></div>'+
-   '<div class="field wide"><label for="detailNotes">Notes & conversation summary</label><textarea id="detailNotes" maxlength="10000" placeholder="What did you discuss?">'+safe(l.notes)+'</textarea></div>'+
-   '<div class="field wide"><label class="consent"><input type="checkbox" id="detailConsent" '+(l.consent?'checked':'')+'><span>I have verified this business has agreed to receive WhatsApp outreach from us. I will respect opt-outs.</span></label></div></div>'+
-   '<div class="message-box"><p>PERSONALIZED INTRO — REVIEW BEFORE SENDING</p><textarea id="detailPitch" maxlength="1800">'+safe(guessPitch(l))+'</textarea></div>'+
-   '<div class="modal-actions"><button class="btn btn-primary" id="saveLead">Save changes</button><button class="btn btn-outline" id="copyPitch">Copy message</button><button class="btn btn-outline" id="waLead">Open WhatsApp ↗</button><button class="btn btn-outline" id="callLead">Call</button></div>';
+   '<div class="field wide"><label for="detailNotes">Notes</label><textarea id="detailNotes" maxlength="10000" placeholder="Conversation notes...">'+safe(l.notes)+'</textarea></div>'+
+   '<div class="field wide"><label class="consent"><input type="checkbox" id="detailConsent" '+(l.consent?'checked':'')+'><span>I confirm this business has permitted WhatsApp outreach; I will respect opt-outs.</span></label></div></div>'+
+   '<div class="message-box"><p>1 · YOUR FIRST MESSAGE</p><textarea id="detailPitch" maxlength="3000" placeholder="Write your own first message...">'+safe(l.firstDraft)+'</textarea><div class="draft-actions"><button class="btn btn-outline btn-small" id="suggestFirst">Use suggested intro</button><span>Fully editable · saved in Supabase</span></div></div>'+
+   '<div class="message-box"><p>2 · SECOND / FOLLOW-UP MESSAGE</p><textarea id="detailFollowupPitch" maxlength="3000" placeholder="Write a different message for later...">'+safe(l.followupDraft)+'</textarea><div class="draft-actions"><button class="btn btn-outline btn-small" id="suggestSecond">Use suggested follow-up</button><span>Saved separately from first message</span></div></div>'+
+   '<p class="workflow-hint">'+(isNew(l)?'After you press Send in WhatsApp, click <b>Mark as Sent</b> to move this business to <b>Contacted Leads</b>.':'This lead is in <b>Contacted Leads</b>. The WhatsApp button uses the second message.')+'</p>'+
+   '<div class="modal-actions"><button class="btn btn-primary" id="saveLead">Save changes</button><button class="btn btn-outline" id="copyPitch">Copy active message</button><button class="btn btn-whatsapp" id="waLead">WhatsApp App ↗</button><button class="btn btn-outline" id="callLead">Call</button></div>'+
+   '<div class="whatsapp-fallback"><a id="waWebFallback" href="#" target="_blank" rel="noopener noreferrer" hidden>App unavailable? Open WhatsApp Web directly ↗</a></div>'+
+   '<div class="modal-actions workflow-actions"><button class="btn btn-outline" id="markSent" '+(!isNew(l)?'disabled':'')+'>✓ Mark as Sent</button><button class="btn btn-outline" id="markReplied" '+(isNew(l)?'disabled':'')+'>✓ Mark as Replied</button><button class="btn btn-outline" id="markFollowup" '+(isNew(l)?'disabled':'')+'>◷ Follow-up Sent</button></div>';
   $('detailBackdrop').hidden=false;document.body.style.overflow='hidden';$('closeDetail').focus()
  }
  function closeLead(){activeId=null;$('detailBackdrop').hidden=true;document.body.style.overflow=''}
- function persistModal(){const l=leads.find(x=>x.id===activeId);if(!l)return null;l.status=$('detailStatus').value;l.followup=$('detailDate').value;l.notes=$('detailNotes').value;l.consent=$('detailConsent').checked;l.updated=stamp();save();render();return l}
- function pitchText(){return $('detailPitch')?.value.trim()||''}
- function openWhatsApp(){const l=persistModal();if(!l)return;if(!l.consent){notify('Confirm permission to contact before opening WhatsApp.');return}
- const phone=cleanNumber(l.Phone);if(!phone){notify('Check the phone number. WhatsApp needs an international-format number.');return}
- if(!pitchText()){notify('Write a message first.');return}
- const url='https://wa.me/'+phone+'?text='+encodeURIComponent(pitchText());window.open(url,'_blank','noopener,noreferrer');notify('WhatsApp draft opened. Review and send manually; mark status after sending.')}
+ function persistModal(){
+  const l=leads.find(x=>x.id===activeId);if(!l)return null;
+  l.status=$('detailStatus').value;l.followup=$('detailDate').value;l.notes=$('detailNotes').value;
+  l.consent=$('detailConsent').checked;l.firstDraft=$('detailPitch').value;l.followupDraft=$('detailFollowupPitch').value;
+  l.updated=stamp();save();render();return l
+ }
+ function activeMessage(l){return (isNew(l)?$('detailPitch').value:$('detailFollowupPitch').value).trim()}
+ function directWhatsApp(l,message){
+  const phone=cleanNumber(l.Phone);if(!phone){notify('Please enter a valid phone number.');return}
+  if(!l.consent){openLead(l.id);notify('Please confirm WhatsApp contact permission in Manage first.');return}
+  const suffix=message?'&text='+encodeURIComponent(message):'';
+  const nativeUrl='whatsapp://send?phone='+phone+suffix;
+  const webUrl='https://web.whatsapp.com/send?phone='+phone+suffix;
+  const fallback=$('waWebFallback');if(fallback){fallback.href=webUrl;fallback.hidden=false}
+  // Opens installed app directly, subject to browser/OS protocol approval.
+  window.location.href=nativeUrl;
+  notify('Opening WhatsApp app. If unavailable, use the direct Web link in Manage.')
+ }
+ function openWhatsApp(){const l=persistModal();if(l)directWhatsApp(l,activeMessage(l))}
+ function quickWhatsApp(id){const l=leads.find(x=>x.id===id);if(l)directWhatsApp(l,currentDraft(l)||'')}
  function callLead(){const l=persistModal();if(!l)return;const d=String(l.Phone).replace(/[^\d+]/g,'');if(!d){notify('Phone number missing.');return}window.location.href='tel:'+encodeURIComponent(d)}
+ function markAction(kind){
+  const l=persistModal();if(!l)return;
+  if(kind==='sent'){l.status='Contacted';l.sentAt=l.sentAt||stamp()}
+  if(kind==='replied'){l.status='Replied';l.repliedAt=stamp()}
+  if(kind==='followup'){l.status='Follow-up';l.followupSentAt=stamp()}
+  l.updated=stamp();save();render();closeLead();
+  if(kind==='sent'){activeView='contacted';updateNavigation();location.hash='leads'}
+  notify(kind==='sent'?'Moved to Contacted Leads.':kind==='replied'?'Reply recorded manually.':'Follow-up recorded manually.')
+ }
+ function updateNavigation(){
+  document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active',a.dataset.nav===activeView));
+  selected.clear();page=1;render()
+ }
  function bind(){for(const id of ['importTop','importEmpty','importSettings'])$(id).addEventListener('click',()=>$('fileInput').click());
   $('fileInput').addEventListener('change',async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024){notify('File is too large (limit: 10 MB).');return}try{const t=await f.text();if(f.name.toLowerCase().endsWith('.json'))await handleJSON(t);else importCSV(t)}catch(err){notify('Import failed: '+err.message)}});
   $('addSingleTop').addEventListener('click',openSingle);
@@ -184,7 +224,7 @@
   document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open);const wa=e.target.closest('[data-whatsapp]');if(wa)quickWhatsApp(wa.dataset.whatsapp)});
   $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('singleBackdrop').hidden)closeSingle();else if(!$('detailBackdrop').hidden)closeLead()}});
-  $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){persistModal();notify('Lead updated.')}if(id==='copyPitch'){try{await navigator.clipboard.writeText(pitchText());notify('Message copied.')}catch(err){$('detailPitch').select();notify('Select and copy the message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead()});
+  $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){persistModal();notify('Changes queued for Supabase sync.')}if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){$(isNew(l)?'detailPitch':'detailFollowupPitch').select();notify('Select and copy your message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='markReplied')markAction('replied');if(id==='markFollowup')markAction('followup');if(id==='suggestFirst')$('detailPitch').value=guessPitch(leads.find(x=>x.id===activeId));if(id==='suggestSecond')$('detailFollowupPitch').value=followupSuggestion(leads.find(x=>x.id===activeId))});
   $('openFirst').addEventListener('click',()=>{const l=filtered()[0];if(l)openLead(l.id);else notify('Import leads first.')});
   $('mobileMenu').addEventListener('click',()=>$('mobileMenu').closest('.app-shell').querySelector('.sidebar').classList.toggle('is-open'));
   document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{const nav=a.dataset.nav;if(['new','contacted','all'].includes(nav)){activeView=nav;updateNavigation()}else{document.querySelectorAll('.nav-link').forEach(x=>x.classList.remove('active'));a.classList.add('active')}document.querySelector('.sidebar').classList.remove('is-open')}));
