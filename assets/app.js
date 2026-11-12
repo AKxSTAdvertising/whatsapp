@@ -181,13 +181,13 @@
   $('clearBtn').addEventListener('click',async()=>{if(confirm('Permanently delete all CRM leads from your Supabase account? Export a backup first. This cannot be undone.')){try{await syncQueue;await window.UnboxedCloud.clear();leads=[];selected.clear();markSynced();page=1;render();notify('Cloud CRM leads deleted.')}catch(e){notify('Could not delete leads: '+e.message)}}});
   for(const id of ['search','statusFilter','priorityFilter','websiteFilter','sort'])$(id).addEventListener(id==='search'?'input':'change',()=>{page=1;render()});
   $('prevPage').addEventListener('click',()=>{page--;render()});$('nextPage').addEventListener('click',()=>{page++;render()});
-  document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open)});
+  document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open);const wa=e.target.closest('[data-whatsapp]');if(wa)quickWhatsApp(wa.dataset.whatsapp)});
   $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('singleBackdrop').hidden)closeSingle();else if(!$('detailBackdrop').hidden)closeLead()}});
   $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){persistModal();notify('Lead updated.')}if(id==='copyPitch'){try{await navigator.clipboard.writeText(pitchText());notify('Message copied.')}catch(err){$('detailPitch').select();notify('Select and copy the message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead()});
   $('openFirst').addEventListener('click',()=>{const l=filtered()[0];if(l)openLead(l.id);else notify('Import leads first.')});
   $('mobileMenu').addEventListener('click',()=>$('mobileMenu').closest('.app-shell').querySelector('.sidebar').classList.toggle('is-open'));
-  document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.nav-link').forEach(x=>x.classList.remove('active'));a.classList.add('active');document.querySelector('.sidebar').classList.remove('is-open')}));
+  document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{const nav=a.dataset.nav;if(['new','contacted','all'].includes(nav)){activeView=nav;updateNavigation()}else{document.querySelectorAll('.nav-link').forEach(x=>x.classList.remove('active'));a.classList.add('active')}document.querySelector('.sidebar').classList.remove('is-open')}));
  }
   async function enterCloud(){
   if(!window.UnboxedCloud||window.UnboxedCloud.error){$('loginError').textContent=window.UnboxedCloud?.error||'Could not load Supabase library.';return}
@@ -208,7 +208,7 @@
   }catch(e){cloudReady=false;document.body.classList.add('auth-locked');$('authGate').hidden=false;$('loginError').textContent='Unable to load private leads: '+e.message;}
  }
  async function bootstrap(){
-  bind();render();
+  bind();updateNavigation();render();
   $('loginForm').addEventListener('submit',async e=>{
    e.preventDefault();const b=$('loginButton');b.disabled=true;b.textContent='Signing in…';$('loginError').textContent='';
    try{await window.UnboxedCloud.signIn($('loginEmail').value.trim(),$('loginPassword').value);$('loginPassword').value='';await enterCloud()}
