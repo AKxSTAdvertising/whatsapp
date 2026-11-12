@@ -4,7 +4,7 @@
  const KEY='unboxedthinking.crm.v1';
  const STATUS=['New','Contacted','Replied','Interested','Follow-up','Meeting booked','Won','Not interested'];
  const HEADERS=['Business Name','Niche','Founder','Phone','Email','Address','Website','Rating','Reviews','Website Status','Digital Score','Lead Priority'];
- let leads=[],page=1,activeId=null,toastTimer=null,cloudReady=false,syncQueue=Promise.resolve(),synced=new Map(),syncPending=0,selected=new Set(),bulkBusy=false,activeView='new';
+ let leads=[],page=1,activeId=null,toastTimer=null,cloudReady=false,syncQueue=Promise.resolve(),synced=new Map(),syncPending=0,selected=new Set(),bulkBusy=false,activeView='new',messageTemplates={general:'Hi {{business_name}}, I came across your business and wanted to connect. We help businesses improve their online presence and generate more enquiries. Would you be open to a quick conversation?',followup:'Hi {{business_name}}, just following up on my earlier message. I wanted to check if you had a chance to review it. Happy to share more details if useful.'},previewType='general';
  const $=id=>document.getElementById(id);
  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const val=(o,k)=>String(o?.[k]??'').trim();
@@ -99,6 +99,30 @@
   $('waSelectPage').indeterminate=count>0&&count<list.length;
   $('waEmpty').hidden=list.length!==0;
  }
+ function renderMessageManager(){
+  $('generalAudienceCount').textContent=leads.filter(isNew).length.toLocaleString('en-IN');
+  $('followupAudienceCount').textContent=leads.filter(l=>!isNew(l)).length.toLocaleString('en-IN');
+  if(document.activeElement!==$('generalMessageTemplate'))$('generalMessageTemplate').value=messageTemplates.general;
+  if(document.activeElement!==$('followupMessageTemplate'))$('followupMessageTemplate').value=messageTemplates.followup;
+  $('generalTemplateLength').textContent=$('generalMessageTemplate').value.length+' / 3000';
+  $('followupTemplateLength').textContent=$('followupMessageTemplate').value.length+' / 3000';
+  renderMessagePreview();
+ }
+ function renderMessagePreview(){
+  const sample={'Business Name':'Sample Business','Niche':'Retail','Founder':'Alex'};
+  $('messagePreview').textContent=fillTemplate(previewType==='general'?messageTemplates.general:messageTemplates.followup,sample)||'Write a message above to see the preview.';
+  $('previewGeneral').classList.toggle('btn-primary',previewType==='general');
+  $('previewFollowup').classList.toggle('btn-primary',previewType==='followup');
+ }
+ async function saveMessageTemplates(){
+  if(!cloudReady){notify('Sign in before saving message templates.');return}
+  const next={general:$('generalMessageTemplate').value.trim(),followup:$('followupMessageTemplate').value.trim()};
+  if(!next.general&&!next.followup){notify('Write at least one message before saving.');return}
+  const btn=$('saveMessageTemplates');btn.disabled=true;btn.textContent='Saving…';
+  try{await window.UnboxedCloud.saveSettings(next);messageTemplates=next;renderMessageManager();notify('Shared message templates saved to your private cloud account.')}
+  catch(e){notify('Could not save message templates: '+e.message)}
+  finally{btn.disabled=false;btn.textContent='Save both messages'}
+ }
  function confirmBulkPermission(){
   const chosen=leads.filter(l=>selected.has(l.id));
   if(!chosen.length){notify('Select contacts first.');return}
@@ -170,7 +194,13 @@
 
  function followupSuggestion(l){return 'Hi, I wanted to follow up on my earlier message about '+(l['Business Name']||'your business')+'. Would you be open to a short conversation? No worries if not.'}
  function isNew(l){return l.status==='New'}
- function currentDraft(l){return isNew(l)?l.firstDraft:l.followupDraft}
+ function fillTemplate(template,l){
+  return String(template||'').replace(/\{\{\s*(business_name|niche|founder)\s*\}\}/gi,(_,key)=>{
+   const map={'business_name':l['Business Name']||'there','niche':l.Niche||'your industry','founder':l.Founder||''};
+   return map[key.toLowerCase()]||'';
+  }).trim();
+ }
+ function currentDraft(l){return fillTemplate(isNew(l)?messageTemplates.general:messageTemplates.followup,l)}
  function openLead(id){
   const l=leads.find(x=>x.id===id);if(!l)return;activeId=l.id;
   $('detailTitle').textContent=l['Business Name']||'Business';
@@ -185,8 +215,7 @@
    '<div class="field"><label for="detailDate">Next follow-up</label><input type="date" id="detailDate" value="'+safe(l.followup)+'"></div>'+
    '<div class="field wide"><label for="detailNotes">Notes</label><textarea id="detailNotes" maxlength="10000" placeholder="Conversation notes...">'+safe(l.notes)+'</textarea></div>'+
    '<div class="field wide"><label class="consent"><input type="checkbox" id="detailConsent" '+(l.consent?'checked':'')+'><span>I confirm this business has permitted WhatsApp outreach; I will respect opt-outs.</span></label></div></div>'+
-   '<div class="message-box"><p>1 · YOUR FIRST MESSAGE</p><textarea id="detailPitch" maxlength="3000" placeholder="Write your own first message...">'+safe(l.firstDraft)+'</textarea><div class="draft-actions"><button class="btn btn-outline btn-small" id="suggestFirst">Use suggested intro</button><span>Fully editable · saved in Supabase</span></div></div>'+
-   '<div class="message-box"><p>2 · SECOND / FOLLOW-UP MESSAGE</p><textarea id="detailFollowupPitch" maxlength="3000" placeholder="Write a different message for later...">'+safe(l.followupDraft)+'</textarea><div class="draft-actions"><button class="btn btn-outline btn-small" id="suggestSecond">Use suggested follow-up</button><span>Saved separately from first message</span></div></div>'+
+   '<div class="message-box"><p>'+(isNew(l)?'GENERAL MESSAGE':'FOLLOW-UP MESSAGE')+' · SHARED TEMPLATE</p><div class="shared-message-preview">'+safe(currentDraft(l)||'No message saved yet. Open Message Manager to add one.')+'</div><div class="draft-actions"><span>Managed centrally in Message Manager</span><button class="btn btn-outline btn-small" id="goMessageManager">Edit shared message →</button></div></div>'+
    '<p class="workflow-hint">'+(isNew(l)?'After you press Send in WhatsApp, click <b>Mark as Sent</b> to move this business to <b>Contacted Leads</b>.':'This lead is in <b>Contacted Leads</b>. The WhatsApp button uses the second message.')+'</p>'+
    '<div class="modal-actions"><button class="btn btn-primary" id="saveLead">Save changes</button><button class="btn btn-outline" id="copyPitch">Copy active message</button><button class="btn btn-whatsapp" id="waLead">WhatsApp App ↗</button><button class="btn btn-outline" id="callLead">Call</button></div>'+
    '<div class="whatsapp-fallback"><a id="waWebFallback" href="#" target="_blank" rel="noopener noreferrer" hidden>App unavailable? Open WhatsApp Web directly ↗</a></div>'+
@@ -197,10 +226,10 @@
  function persistModal(){
   const l=leads.find(x=>x.id===activeId);if(!l)return null;
   l.status=$('detailStatus').value;l.followup=$('detailDate').value;l.notes=$('detailNotes').value;
-  l.consent=$('detailConsent').checked;l.firstDraft=$('detailPitch').value;l.followupDraft=$('detailFollowupPitch').value;
+  l.consent=$('detailConsent').checked;
   l.updated=stamp();save();render();return l
  }
- function activeMessage(l){return (isNew(l)?$('detailPitch').value:$('detailFollowupPitch').value).trim()}
+ function activeMessage(l){return currentDraft(l)}
  function directWhatsApp(l,message){
   const phone=cleanNumber(l.Phone);if(!phone){notify('Please enter a valid phone number.');return}
   if(!l.consent){notify('Confirm this contact\'s permission in WhatsApp Outreach first.');return}
@@ -230,6 +259,7 @@
   if(shell)shell.dataset.page=['new','contacted','all'].includes(activeView)?'leads':activeView;
   selected.clear();page=1;render();
   if(activeView==='whatsapp')renderWhatsAppPage();
+  if(activeView==='messages')renderMessageManager();
  }
  function bind(){for(const id of ['importTop','importEmpty','importSettings'])$(id).addEventListener('click',()=>$('fileInput').click());
   $('fileInput').addEventListener('change',async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024){notify('File is too large (limit: 10 MB).');return}try{const t=await f.text();if(f.name.toLowerCase().endsWith('.json'))await handleJSON(t);else importCSV(t)}catch(err){notify('Import failed: '+err.message)}});
@@ -243,6 +273,10 @@
   $('waSelectAll').addEventListener('change',e=>{for(const l of whatsappFiltered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}renderWhatsAppPage()});
   $('waSelectPage').addEventListener('change',e=>{for(const l of whatsappFiltered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}renderWhatsAppPage()});
   $('waRows').addEventListener('change',e=>{if(!e.target.matches('[data-wa-select]'))return;if(e.target.checked)selected.add(e.target.dataset.waSelect);else selected.delete(e.target.dataset.waSelect);renderWhatsAppPage()});
+  $('saveMessageTemplates').addEventListener('click',saveMessageTemplates);
+  for(const id of ['generalMessageTemplate','followupMessageTemplate'])$(id).addEventListener('input',()=>{$(id==='generalMessageTemplate'?'generalTemplateLength':'followupTemplateLength').textContent=$(id).value.length+' / 3000';renderMessagePreview()});
+  $('previewGeneral').addEventListener('click',()=>{previewType='general';renderMessagePreview()});
+  $('previewFollowup').addEventListener('click',()=>{previewType='followup';renderMessagePreview()});
   for(const id of ['waSearch','waStatusFilter','waPermissionFilter'])$(id).addEventListener(id==='waSearch'?'input':'change',renderWhatsAppPage);
   $('selectPage').addEventListener('change',e=>{const list=filtered().slice((page-1)*15,page*15);for(const l of list){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}render()});
   $('selectAllMatching').addEventListener('change',e=>{for(const l of filtered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}render()});
@@ -255,7 +289,7 @@
   document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open);const wa=e.target.closest('[data-whatsapp]');if(wa)quickWhatsApp(wa.dataset.whatsapp)});
   $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('singleBackdrop').hidden)closeSingle();else if(!$('detailBackdrop').hidden)closeLead()}});
-  $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){persistModal();notify('Changes queued for Supabase sync.')}if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){$(isNew(l)?'detailPitch':'detailFollowupPitch').select();notify('Select and copy your message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='markReplied')markAction('replied');if(id==='markFollowup')markAction('followup');if(id==='suggestFirst')$('detailPitch').value=guessPitch(leads.find(x=>x.id===activeId));if(id==='suggestSecond')$('detailFollowupPitch').value=followupSuggestion(leads.find(x=>x.id===activeId))});
+  $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){persistModal();notify('Changes queued for Supabase sync.')}if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){$(isNew(l)?'detailPitch':'detailFollowupPitch').select();notify('Select and copy your message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='markReplied')markAction('replied');if(id==='markFollowup')markAction('followup');if(id==='goMessageManager'){closeLead();activeView='messages';updateNavigation()}});
   $('openFirst').addEventListener('click',()=>{const l=filtered()[0];if(l)openLead(l.id);else notify('Import leads first.')});
   $('mobileMenu').addEventListener('click',()=>$('mobileMenu').closest('.app-shell').querySelector('.sidebar').classList.toggle('is-open'));
   document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{activeView=a.dataset.nav;updateNavigation();document.querySelector('.sidebar').classList.remove('is-open')}));
@@ -266,7 +300,9 @@
   try{
     const data=await window.UnboxedCloud.load();
     leads=data.map(normalize);
-    selected.clear();cloudReady=true;markSynced();page=1;render();
+    const savedTemplates=await window.UnboxedCloud.loadSettings();
+    if(savedTemplates&&typeof savedTemplates==='object')messageTemplates={...messageTemplates,...savedTemplates};
+    selected.clear();cloudReady=true;markSynced();page=1;render();renderMessageManager();
     document.body.classList.remove('auth-locked');$('authGate').hidden=true;
     $('loginError').textContent='';
     const previous=JSON.parse(localStorage.getItem(KEY)||'[]');
