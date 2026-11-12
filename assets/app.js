@@ -4,7 +4,7 @@
  const KEY='unboxedthinking.crm.v1';
  const STATUS=['New','Contacted','Interested','Follow-up','Meeting booked','Won','Not interested'];
  const HEADERS=['Business Name','Niche','Founder','Phone','Email','Address','Website','Rating','Reviews','Website Status','Digital Score','Lead Priority'];
- let leads=[],page=1,activeId=null,toastTimer=null,cloudReady=false,syncQueue=Promise.resolve(),synced=new Map(),syncPending=0;
+ let leads=[],page=1,activeId=null,toastTimer=null,cloudReady=false,syncQueue=Promise.resolve(),synced=new Map(),syncPending=0,selected=new Set(),bulkBusy=false;
  const $=id=>document.getElementById(id);
  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const val=(o,k)=>String(o?.[k]??'').trim();
@@ -74,10 +74,69 @@
   $('statTotal').textContent=leads.length.toLocaleString('en-IN');$('statContacted').textContent=contacted.toLocaleString('en-IN');$('statInterested').textContent=interested.toLocaleString('en-IN');$('statDue').textContent=due.length.toLocaleString('en-IN');$('leadCount').textContent=leads.length.toLocaleString('en-IN');
   options($('priorityFilter'),leads.map(l=>l['Lead Priority']),'priorities');options($('websiteFilter'),leads.map(l=>l['Website Status']),'website statuses');
   const list=filtered(),per=15,pages=Math.max(1,Math.ceil(list.length/per));page=Math.min(page,pages);const slice=list.slice((page-1)*per,page*per);
-  $('leadRows').innerHTML=slice.map(l=>'<tr><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l['Lead Priority'],'priority')+'</td><td>'+safe(l['Website Status']||'Unknown')+'</td><td>'+badge(l.status,'status')+'</td><td>'+safe(l.followup||'—')+'</td><td><div class="row-actions"><button class="mini-btn" data-open="'+safe(l.id)+'">View / outreach</button></div></td></tr>').join('');
+  $('leadRows').innerHTML=slice.map(l=>'<tr><td><input class="lead-select" type="checkbox" data-select="'+safe(l.id)+'" aria-label="Select '+safe(l['Business Name']||'lead')+'" '+(selected.has(l.id)?'checked':'')+'></td><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l['Lead Priority'],'priority')+'</td><td>'+safe(l['Website Status']||'Unknown')+'</td><td>'+badge(l.status,'status')+'</td><td>'+safe(l.followup||'—')+'</td><td><div class="row-actions"><button class="mini-btn" data-open="'+safe(l.id)+'">View / outreach</button></div></td></tr>').join('');
+  updateSelectionControls(list,slice);
   $('emptyState').hidden=list.length!==0;$('emptyMessage').textContent=leads.length?'No matching leads. Change the filters to see more.':'Import your cleaned CSV to start your outreach workspace.';$('importEmpty').hidden=leads.length>0;
   $('pageSummary').textContent=list.length?((page-1)*per+1)+'–'+Math.min(page*per,list.length)+' of '+list.length+' leads':'0 leads';$('pageNumber').textContent=page+' / '+pages;$('prevPage').disabled=page===1;$('nextPage').disabled=page===pages;
   due.sort((a,b)=>a.followup.localeCompare(b.followup));$('dueList').innerHTML=due.length?due.slice(0,5).map(l=>'<div class="due-item"><div><strong>'+safe(l['Business Name']||'Business')+'</strong><small>'+safe(l.followup)+' · '+safe(l.Niche||'Follow-up')+'</small></div><button class="mini-btn" data-open="'+safe(l.id)+'">Open →</button></div>').join(''):'<p class="due-none">No follow-ups due. Set a follow-up date on a lead to see it here.</p>';
+ }
+ function updateSelectionControls(list,visible){
+   const matching=new Set(list.map(x=>x.id));
+   const selectedMatching=list.filter(x=>selected.has(x.id)).length;
+   $('selectedCount').textContent=selected.size+' selected'+(selectedMatching!==selected.size?' ('+selectedMatching+' match filters)':'');
+   $('bulkDeleteBtn').disabled=!cloudReady||bulkBusy||selected.size===0;
+   const pageCount=visible.filter(x=>selected.has(x.id)).length;
+   $('selectPage').checked=visible.length>0&&pageCount===visible.length;
+   $('selectPage').indeterminate=pageCount>0&&pageCount<visible.length;
+   $('selectPage').disabled=visible.length===0||bulkBusy;
+   $('selectAllMatching').checked=list.length>0&&selectedMatching===list.length;
+   $('selectAllMatching').indeterminate=selectedMatching>0&&selectedMatching<list.length;
+   $('selectAllMatching').disabled=list.length===0||bulkBusy;
+ }
+ function openSingle(){
+   if(!cloudReady){notify('Sign in before adding leads.');return}
+   $('singleForm').reset();$('singleError').textContent='';$('singleBackdrop').hidden=false;document.body.style.overflow='hidden';$('singleName').focus();
+ }
+ function closeSingle(){
+   $('singleBackdrop').hidden=true;document.body.style.overflow='';
+ }
+ async function saveSingle(evt){
+   evt.preventDefault();if(!cloudReady)return;
+   const name=$('singleName').value.trim(),phone=$('singlePhone').value.trim();
+   if(!name){$('singleError').textContent='Business name is required.';return}
+   if(!cleanNumber(phone)){$('singleError').textContent='Enter a valid 10-digit Indian or international phone number.';return}
+   const o=normalize({'Business Name':name,Phone:phone,Niche:$('singleNiche').value.trim(),'Lead Priority':$('singlePriority').value,'Website Status':$('singleWebsiteStatus').value,Website:$('singleWebsite').value.trim()});
+   o.notes=$('singleNotes').value.trim();
+   if(leads.some(l=>dedupKey(l)===dedupKey(o))){$('singleError').textContent='This business and phone number already exist.';return}
+   const btn=$('singleSave');btn.disabled=true;btn.textContent='Saving…';$('singleError').textContent='';
+   try{
+     await syncQueue;
+     await window.UnboxedCloud.put([o]);
+     leads.push(o);synced.set(dedupKey(o),snapshot(o));page=1;render();
+     closeSingle();notify('Lead added and saved to Supabase.');openLead(o.id);
+   }catch(e){$('singleError').textContent='Could not save lead: '+e.message}
+   finally{btn.disabled=false;btn.textContent='Save lead to Supabase'}
+ }
+ async function bulkDelete(){
+   if(bulkBusy||!cloudReady||selected.size===0)return;
+   const targets=leads.filter(l=>selected.has(l.id));
+   if(!targets.length){selected.clear();render();return}
+   const count=targets.length;
+   if(!confirm('Permanently delete '+count+' selected lead'+(count===1?'':'s')+' from your Supabase account? This cannot be undone. Export a backup first.'))return;
+   bulkBusy=true;render();
+   try{
+     await syncQueue;
+     const keys=targets.map(dedupKey);
+     const deleted=await window.UnboxedCloud.removeKeys(keys);
+     // Reload the authoritative cloud state to handle partial deletes or cross-device edits safely.
+     const refreshed=await window.UnboxedCloud.load();
+     leads=refreshed.map(normalize);markSynced();
+     selected.clear();page=1;render();
+     notify('Deleted '+deleted+' lead'+(deleted===1?'':'s')+' from Supabase.');
+   }catch(e){
+     try{leads=(await window.UnboxedCloud.load()).map(normalize);markSynced();selected.clear()}catch(_){}
+     notify('Bulk delete incomplete: '+e.message+'. Refresh before retrying.');
+   }finally{bulkBusy=false;render()}
  }
  function guessPitch(l){const name=l['Business Name']||'your business',niche=(l.Niche||'business').toLowerCase(),noWebsite=/no|missing|not|none/i.test(l['Website Status']||'');
   return 'Hi, I came across '+name+' and liked what you are doing in '+niche+'. I am reaching out from UnboxedThinking. '+(noWebsite?'We help growing businesses build clean, mobile-friendly websites that turn visitors into enquiries.':'We help businesses improve their website experience and digital presence to generate more enquiries.')+' Would you be open to a quick conversation? If not, no worries — I will not follow up.'}
@@ -105,14 +164,23 @@
  function callLead(){const l=persistModal();if(!l)return;const d=String(l.Phone).replace(/[^\d+]/g,'');if(!d){notify('Phone number missing.');return}window.location.href='tel:'+encodeURIComponent(d)}
  function bind(){for(const id of ['importTop','importEmpty','importSettings'])$(id).addEventListener('click',()=>$('fileInput').click());
   $('fileInput').addEventListener('change',async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024){notify('File is too large (limit: 10 MB).');return}try{const t=await f.text();if(f.name.toLowerCase().endsWith('.json'))await handleJSON(t);else importCSV(t)}catch(err){notify('Import failed: '+err.message)}});
+  $('addSingleTop').addEventListener('click',openSingle);
+  $('closeSingle').addEventListener('click',closeSingle);
+  $('singleCancel').addEventListener('click',closeSingle);
+  $('singleBackdrop').addEventListener('click',e=>{if(e.target===$('singleBackdrop'))closeSingle()});
+  $('singleForm').addEventListener('submit',saveSingle);
+  $('bulkDeleteBtn').addEventListener('click',bulkDelete);
+  $('selectPage').addEventListener('change',e=>{const list=filtered().slice((page-1)*15,page*15);for(const l of list){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}render()});
+  $('selectAllMatching').addEventListener('change',e=>{for(const l of filtered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}render()});
+  $('leadRows').addEventListener('change',e=>{if(!e.target.matches('[data-select]'))return;if(e.target.checked)selected.add(e.target.dataset.select);else selected.delete(e.target.dataset.select);render()});
   $('exportBtn').addEventListener('click',exportCSV);$('backupBtn').addEventListener('click',backup);
   $('restoreInfo').addEventListener('click',()=>notify('Full backup saves status, notes and permissions. Import that JSON to restore them. CSV export is for spreadsheet use.'));
-  $('clearBtn').addEventListener('click',async()=>{if(confirm('Permanently delete all CRM leads from your Supabase account? Export a backup first. This cannot be undone.')){try{await syncQueue;await window.UnboxedCloud.clear();leads=[];markSynced();page=1;render();notify('Cloud CRM leads deleted.')}catch(e){notify('Could not delete leads: '+e.message)}}});
+  $('clearBtn').addEventListener('click',async()=>{if(confirm('Permanently delete all CRM leads from your Supabase account? Export a backup first. This cannot be undone.')){try{await syncQueue;await window.UnboxedCloud.clear();leads=[];selected.clear();markSynced();page=1;render();notify('Cloud CRM leads deleted.')}catch(e){notify('Could not delete leads: '+e.message)}}});
   for(const id of ['search','statusFilter','priorityFilter','websiteFilter','sort'])$(id).addEventListener(id==='search'?'input':'change',()=>{page=1;render()});
   $('prevPage').addEventListener('click',()=>{page--;render()});$('nextPage').addEventListener('click',()=>{page++;render()});
   document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open)});
   $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('detailBackdrop').hidden)closeLead()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('singleBackdrop').hidden)closeSingle();else if(!$('detailBackdrop').hidden)closeLead()}});
   $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){persistModal();notify('Lead updated.')}if(id==='copyPitch'){try{await navigator.clipboard.writeText(pitchText());notify('Message copied.')}catch(err){$('detailPitch').select();notify('Select and copy the message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead()});
   $('openFirst').addEventListener('click',()=>{const l=filtered()[0];if(l)openLead(l.id);else notify('Import leads first.')});
   $('mobileMenu').addEventListener('click',()=>$('mobileMenu').closest('.app-shell').querySelector('.sidebar').classList.toggle('is-open'));
@@ -124,7 +192,7 @@
   try{
     const data=await window.UnboxedCloud.load();
     leads=data.map(normalize);
-    cloudReady=true;markSynced();page=1;render();
+    selected.clear();cloudReady=true;markSynced();page=1;render();
     document.body.classList.remove('auth-locked');$('authGate').hidden=true;
     $('loginError').textContent='';
     const previous=JSON.parse(localStorage.getItem(KEY)||'[]');
@@ -145,7 +213,7 @@
   });
   $('logoutBtn').addEventListener('click',async()=>{
    if(syncPending>0){notify('Finish syncing your leads before signing out.');return}
-   try{await window.UnboxedCloud.signOut();leads=[];synced.clear();cloudReady=false;render();document.body.classList.add('auth-locked');$('authGate').hidden=false;notify('Signed out.')}catch(e){notify('Sign out failed: '+e.message)}
+   try{await window.UnboxedCloud.signOut();leads=[];selected.clear();synced.clear();cloudReady=false;render();document.body.classList.add('auth-locked');$('authGate').hidden=false;notify('Signed out.')}catch(e){notify('Sign out failed: '+e.message)}
   });
   if(!window.UnboxedCloud||window.UnboxedCloud.error){$('loginError').textContent=window.UnboxedCloud?.error||'Supabase unavailable.';return}
   try{const sess=await window.UnboxedCloud.session();if(sess?.user)await enterCloud()}catch(e){$('loginError').textContent='Session error: '+e.message}
