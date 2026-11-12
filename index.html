@@ -4,7 +4,7 @@
 <meta name="description" content="UnboxedThinking private, browser-based lead outreach workspace.">
 <meta name="robots" content="noindex,nofollow">
 <title>UnboxedThinking — Lead Workspace</title>
-<link rel="stylesheet" href="./assets/app.css?v=3"></head>
+<link rel="stylesheet" href="./assets/app.css?v=4"></head>
 <body class="auth-locked">
 <div class="app-shell">
 <aside class="sidebar">
@@ -12,11 +12,13 @@
  <div class="side-label">WORKSPACE</div>
  <nav class="side-nav" aria-label="Workspace navigation">
  <a href="#overview" class="nav-link active" data-nav="overview"><span>◫</span> Overview</a>
- <a href="#leads" class="nav-link" data-nav="leads"><span>☷</span> All leads</a>
+ <a href="#leads" class="nav-link" data-nav="new"><span>✦</span> New Leads</a>
+ <a href="#leads" class="nav-link" data-nav="contacted"><span>◉</span> Contacted Leads <span class="nav-count" id="contactedNavCount">0</span></a>
+ <a href="#leads" class="nav-link" data-nav="all"><span>☷</span> All Leads</a>
  <a href="#followups" class="nav-link" data-nav="followups"><span>◷</span> Follow-ups</a>
  <a href="#settings" class="nav-link" data-nav="settings"><span>⚙</span> Data & export</a>
  </nav>
- <div class="side-note"><span class="status-dot"></span> Supabase cloud workspace<p>Your leads sync securely after you sign in. WhatsApp messages are never sent automatically.</p></div>
+ <div class="side-note"><span class="status-dot"></span> Supabase cloud workspace<p>Your drafts and lead statuses sync securely. Sending and response updates are always manual.</p></div>
 </aside>
 <div class="main-area">
 <header class="topbar"><div><button class="mobile-menu" id="mobileMenu" aria-label="Toggle menu">☰</button><span class="top-eyebrow">YOUR SALES OPERATING SYSTEM</span></div><div class="top-right"><span class="local-pill"><span class="status-dot"></span> Supabase sync</span><span class="avatar">UT</span></div></header>
@@ -30,7 +32,7 @@
  <div class="stat"><span>DUE FOLLOW-UPS</span><strong id="statDue">0</strong><small>Today & overdue</small><i class="stat-mark orange">◷</i></div>
 </section>
 <section class="workspace" id="leads">
- <div class="section-header"><div><p class="overline">MANAGE YOUR PIPELINE</p><h2>Lead directory <span class="count" id="leadCount">0</span></h2></div><div class="toolbar"><button class="btn btn-outline" id="exportBtn">↧ Export CSV</button><button class="btn btn-outline" id="backupBtn">↧ Full backup</button></div></div>
+ <div class="section-header"><div><p class="overline">MANAGE YOUR PIPELINE</p><h2><span id="directoryHeading">New leads</span> <span class="count" id="leadCount">0</span></h2><p class="directory-sub" id="directoryHint">Leads awaiting their first message. Select a lead to write your own WhatsApp message.</p></div><div class="toolbar"><button class="btn btn-outline" id="exportBtn">↧ Export CSV</button><button class="btn btn-outline" id="backupBtn">↧ Full backup</button></div></div>
  <div class="bulk-toolbar"><label class="bulk-check"><input id="selectAllMatching" type="checkbox"> Select all filtered leads</label><span id="selectedCount">0 selected</span><button class="btn btn-danger btn-small" id="bulkDeleteBtn" disabled>Delete selected</button></div>
  <div class="table-panel">
  <div class="filters"><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search business, niche, phone, city..." autocomplete="off"></label>
@@ -44,7 +46,7 @@
  <div class="pagination"><span id="pageSummary">0 leads</span><div><button id="prevPage" class="btn btn-outline btn-small">← Previous</button><span id="pageNumber">1 / 1</span><button id="nextPage" class="btn btn-outline btn-small">Next →</button></div></div>
  </div>
 </section>
-<section class="bottom-grid" id="followups"><div class="panel"><div class="panel-head"><h2>Due follow-ups</h2><span class="soft-chip">Action needed</span></div><div id="dueList" class="due-list"></div></div><div class="panel guide"><p class="overline">YOUR OUTREACH PLAYBOOK</p><h2>Make it personal.<br><em>Keep it human.</em></h2><p>Prioritize relevant businesses, confirm permission to contact, then personalize your introduction. WhatsApp opens a draft only; you always review and send manually.</p><button class="btn btn-outline" id="openFirst">View top lead →</button></div></section>
+<section class="bottom-grid" id="followups"><div class="panel"><div class="panel-head"><h2>Due follow-ups</h2><span class="soft-chip">Action needed</span></div><div id="dueList" class="due-list"></div></div><div class="panel guide"><p class="overline">YOUR OUTREACH PLAYBOOK</p><h2>Make it personal.<br><em>Keep it human.</em></h2><p>Prioritize relevant businesses, confirm permission to contact, then personalize your introduction. WhatsApp opens the direct chat, with your saved first or follow-up draft ready. You still press Send manually and record the status yourself.</p><button class="btn btn-outline" id="openFirst">View top lead →</button></div></section>
 <section class="settings" id="settings"><div><p class="overline">DATA CONTROL</p><h2>Own your pipeline</h2><p>Import the cleaned lead CSV, export your progress, or restore a full JSON backup. Leads are never committed to the public GitHub repository.</p></div><div class="settings-actions"><button class="btn btn-primary" id="importSettings">Import CSV / JSON</button><button class="btn btn-outline" id="restoreInfo">How backups work</button><button class="btn btn-danger" id="clearBtn">Delete all cloud leads</button></div></section>
 <footer>UnboxedThinking · Private lead workspace MVP <span>No WhatsApp API · No auto-send · Supabase secured</span></footer>
 </main></div></div>
@@ -73,4 +75,4 @@
  <p class="auth-foot">No public signup. Ask your Supabase administrator for an invited account.</p></div></section>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.js" defer></script>
 <script src="./assets/cloud.js?v=3" defer></script>
-<script src="./assets/app.js?v=3" defer></script></body></html>
+<script src="./assets/app.js?v=4" defer></script></body></html>
