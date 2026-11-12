@@ -4,7 +4,7 @@
 <meta name="description" content="UnboxedThinking private, browser-based lead outreach workspace.">
 <meta name="robots" content="noindex,nofollow">
 <title>UnboxedThinking — Lead Workspace</title>
-<link rel="stylesheet" href="./assets/app.css?v=4"></head>
+<link rel="stylesheet" href="./assets/app.css?v=5"></head>
 <body class="auth-locked">
 <div class="app-shell">
 <aside class="sidebar">
@@ -18,6 +18,7 @@
  <a href="#followups" class="nav-link" data-nav="followups"><span>◷</span> Follow-ups</a>
  <a href="#settings" class="nav-link" data-nav="settings"><span>⚙</span> Data & export</a>
  <a href="#whatsappPage" class="nav-link" data-nav="whatsapp"><span>◉</span> WhatsApp Outreach</a>
+ <a href="#messageCenter" class="nav-link" data-nav="messages"><span>✉</span> Message Manager</a>
  </nav>
  <div class="side-note"><span class="status-dot"></span> Supabase cloud workspace<p>Your drafts and lead statuses sync securely. Sending and response updates are always manual.</p></div>
 </aside>
@@ -54,7 +55,20 @@
  <div class="table-scroller"><table><thead><tr><th><input type="checkbox" id="waSelectPage" aria-label="Select visible contacts"></th><th>BUSINESS</th><th>PHONE</th><th>STATUS</th><th>PERMISSION</th><th>MESSAGE TYPE</th><th>ACTION</th></tr></thead><tbody id="waRows"></tbody></table></div><div class="empty" id="waEmpty" hidden><h3>No contacts found</h3><p>Try changing your search or filters.</p></div></div>
  <p class="workflow-hint">Permission is stored per lead, but you can confirm a selected group together. Only select contacts who have actually agreed to receive WhatsApp messages. WhatsApp opens one chat at a time; you review and press Send yourself.</p>
  </section>
-<section class="bottom-grid" id="followups"><div class="panel"><div class="panel-head"><h2>Due follow-ups</h2><span class="soft-chip">Action needed</span></div><div id="dueList" class="due-list"></div></div><div class="panel guide"><p class="overline">YOUR OUTREACH PLAYBOOK</p><h2>Make it personal.<br><em>Keep it human.</em></h2><p>Prioritize relevant businesses, confirm permission to contact, then personalize your introduction. WhatsApp opens the direct chat, with your saved first or follow-up draft ready. You still press Send manually and record the status yourself.</p><button class="btn btn-outline" id="openFirst">View top lead →</button></div></section>
+<section class="message-center" id="messageCenter">
+ <div class="section-header"><div><p class="overline">CENTRAL MESSAGE CONTROL</p><h2>Message Manager</h2><p class="directory-sub">Edit each template once. Every lead in its group will use the latest saved version.</p></div><button class="btn btn-primary" id="saveMessageTemplates">Save both messages</button></div>
+ <div class="message-audience-grid">
+  <div class="audience-card"><span>GENERAL MESSAGE · NEW LEADS</span><strong id="generalAudienceCount">0</strong><small>Leads that have not been marked as contacted</small></div>
+  <div class="audience-card"><span>FOLLOW-UP MESSAGE · CONTACTED LEADS</span><strong id="followupAudienceCount">0</strong><small>Leads already moved out of New Leads</small></div>
+ </div>
+ <div class="template-grid">
+  <article class="template-card"><div class="template-head"><div><span class="template-kicker">01 / FIRST TOUCH</span><h3>General Message</h3><p>One shared message for all New Leads.</p></div><span class="template-tag">GENERAL</span></div><textarea id="generalMessageTemplate" maxlength="3000" rows="9" placeholder="Write your common first outreach message..."></textarea><div class="template-foot"><span>Available: {{business_name}} · {{niche}} · {{founder}}</span><span id="generalTemplateLength">0 / 3000</span></div></article>
+  <article class="template-card"><div class="template-head"><div><span class="template-kicker">02 / SECOND TOUCH</span><h3>Follow-up Message</h3><p>One shared message for all contacted leads.</p></div><span class="template-tag followup-tag">FOLLOW-UP</span></div><textarea id="followupMessageTemplate" maxlength="3000" rows="9" placeholder="Write your common follow-up message..."></textarea><div class="template-foot"><span>Available: {{business_name}} · {{niche}} · {{founder}}</span><span id="followupTemplateLength">0 / 3000</span></div></article>
+ </div>
+ <p class="workflow-hint">Changing and saving a template updates the message used the next time you open WhatsApp for every lead in that group. Previously sent WhatsApp messages are not changed. WhatsApp still opens one chat at a time; you press Send manually.</p>
+ <div class="message-preview-panel"><div><span class="template-kicker">LIVE PREVIEW</span><h3>Preview with a sample lead</h3></div><div class="preview-tabs"><button class="btn btn-outline btn-small" id="previewGeneral">General</button><button class="btn btn-outline btn-small" id="previewFollowup">Follow-up</button></div><div id="messagePreview" class="message-preview">Your message preview will appear here.</div></div>
+ </section>
+<section class="bottom-grid" id="followups"><div class="panel"><div class="panel-head"><h2>Due follow-ups</h2><span class="soft-chip">Action needed</span></div><div id="dueList" class="due-list"></div></div><div class="panel guide"><p class="overline">YOUR OUTREACH PLAYBOOK</p><h2>Make it personal.<br><em>Keep it human.</em></h2><p>Prioritize relevant businesses, confirm permission to contact, then use the shared General or Follow-up message from Message Manager. You still press Send manually and record the status yourself.</p><button class="btn btn-outline" id="openFirst">View top lead →</button></div></section>
 <section class="settings" id="settings"><div><p class="overline">DATA CONTROL</p><h2>Own your pipeline</h2><p>Import the cleaned lead CSV, export your progress, or restore a full JSON backup. Leads are never committed to the public GitHub repository.</p></div><div class="settings-actions"><button class="btn btn-primary" id="importSettings">Import CSV / JSON</button><button class="btn btn-outline" id="restoreInfo">How backups work</button><button class="btn btn-danger" id="clearBtn">Delete all cloud leads</button></div></section>
 <footer>UnboxedThinking · Private lead workspace MVP <span>No WhatsApp API · No auto-send · Supabase secured</span></footer>
 </main></div></div>
@@ -82,5 +96,5 @@
  <button class="btn btn-primary" id="loginButton" type="submit">Sign in securely →</button></form>
  <p class="auth-foot">No public signup. Ask your Supabase administrator for an invited account.</p></div></section>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.js" defer></script>
-<script src="./assets/cloud.js?v=3" defer></script>
-<script src="./assets/app.js?v=4" defer></script></body></html>
+<script src="./assets/cloud.js?v=4" defer></script>
+<script src="./assets/app.js?v=5" defer></script></body></html>
