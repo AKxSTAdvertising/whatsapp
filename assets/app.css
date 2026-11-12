@@ -28,3 +28,19 @@ body.auth-locked .app-shell{display:none}
 .single-form .login-error{margin-top:12px}
 .table-scroller th:first-child,.table-scroller td:first-child{width:36px;padding-left:16px;padding-right:0}
 @media(max-width:575px){.bulk-toolbar{gap:10px}.bulk-toolbar #selectedCount{margin-left:0}.bulk-toolbar #bulkDeleteBtn{margin-left:auto}.top-actions{flex-wrap:wrap}}
+
+/* Outreach workflow: dedicated new/contacted modules and independent message drafts */
+.nav-count{margin-left:auto;background:#32375b;color:#ded7ff;padding:3px 7px;border-radius:7px;font-size:10px;font-weight:800}
+.directory-sub{margin:9px 0 0;font-size:12px;line-height:1.5;color:#858ba0;max-width:680px}
+.mini-wa{border-color:#b8e5cb!important;color:#19764b!important;background:#f3fbf6!important}
+.mini-wa:hover{background:#e7f7ee!important}
+.btn-whatsapp{background:#178c58;border-color:#178c58;color:#fff}
+.btn-whatsapp:hover{background:#106f45}
+.draft-actions{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:9px;flex-wrap:wrap}
+.draft-actions span{font-size:10px;color:#9298aa}
+.workflow-hint{font-size:12px;background:#f5f3ff;color:#655b81;padding:13px;border:1px solid #e9e5fc;border-radius:10px;line-height:1.6;margin:15px 0}
+.workflow-actions{border-top:1px solid #edeef4;padding-top:15px}
+.workflow-actions .btn{flex:1;min-width:120px}
+.whatsapp-fallback{padding:10px 0;text-align:center}
+.whatsapp-fallback a{color:#19764b;text-decoration:underline;font-size:12px}
+@media(max-width:575px){.workflow-actions .btn{min-width:100%}.row-actions{flex-wrap:nowrap}.draft-actions{align-items:flex-start}.directory-sub{font-size:11px}}
