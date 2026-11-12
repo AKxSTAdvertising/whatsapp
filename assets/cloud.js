@@ -36,6 +36,18 @@
       if(error)throw error;
     }
   }
+  async function removeKeys(keys){
+    if(!Array.isArray(keys)||!keys.length)return 0;
+    const user=await requireUser();
+    let removed=0;
+    for(let i=0;i<keys.length;i+=80){
+      const batch=keys.slice(i,i+80);
+      const {data,error}=await client.from(table).delete().eq('user_id',user.id).in('dedup_key',batch).select('dedup_key');
+      if(error)throw error;
+      removed+=(data||[]).length;
+    }
+    return removed;
+  }
   async function clear(){
     const user=await requireUser();
     const {error}=await client.from(table).delete().eq('user_id',user.id).gte('created_at','2000-01-01T00:00:00Z');
@@ -45,6 +57,6 @@
     signIn:async(email,password)=>{const {data,error}=await client.auth.signInWithPassword({email,password});if(error)throw error;return data},
     session:async()=>{const {data,error}=await client.auth.getSession();if(error)throw error;return data.session},
     signOut:async()=>{const {error}=await client.auth.signOut();if(error)throw error},
-    load,put,clear
+    load,put,clear,removeKeys
   };
 })();
