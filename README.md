@@ -1,51 +1,61 @@
-# UnboxedThinking — Lead Outreach CRM
+# UnboxedThinking — Supabase Lead CRM
 
-A privacy-conscious, browser-local CRM for manually managing business outreach **without the WhatsApp API**.
+A browser-based, password-login CRM for manual, permission-based business outreach. Uses **Supabase Authentication + PostgreSQL with row-level security**. **No WhatsApp API and no automatic sending.**
 
-## Features
+## Project
 
-- Import CSV (including `shailesh-leads-with-contact-numbers.csv`) and skip rows with missing phone numbers
-- Search by business, niche, phone, address and email
-- Filter by priority, status and website status
-- Auto-generated, editable niche-aware message drafts
-- Manual WhatsApp chat opening via `wa.me` (does **not** send a message)
-- Checkbox requiring user confirmation of permission to contact before opening a WhatsApp draft
-- Phone dialer, lead status, notes and next follow-up date
-- Follow-up due list and pipeline summary
-- CSV export and JSON backup/restore
-- Mobile-friendly layout
+- GitHub: https://github.com/AKxSTAdvertising/whatsapp
+- Supabase project ref: `fhpbijphwfsejmdklcdt` (existing AKxSTAdvertising project)
+- Database table: `public.unboxed_crm_leads` (new isolated CRM table)
+- Expected site after GitHub Pages activation: https://akxstadvertising.github.io/whatsapp/
 
-## Data safety and limitations
+## First-time setup
 
-**Important:** This first version uses the browser's `localStorage` only. There is **no server database, shared/team sync, remote authentication, or password-protected application** yet. Anyone can access the empty web application if hosted publicly, but leads added in your browser are **not uploaded to GitHub or a server**. Browser profiles, browser resets, device changes, private browsing, and storage clearing can lose data. Export a JSON backup frequently and protect those backups.
+1. In **GitHub → Settings → Pages**, select **GitHub Actions**. GitHub's automatic Pages enablement failed with `Resource not accessible by integration`; the repository owner must enable Pages through Settings.
+2. In Supabase dashboard **Authentication → Users**, use an **existing account** or invite/create a user through your dashboard. The CRM intentionally has no public sign-up form.
+3. Sign in to the website using that account's **email and password**. If the account was created without a password, set a password using Supabase Auth's supported account flows.
+4. Import your cleaned `shailesh-leads-with-contact-numbers.csv` through the CRM interface. **Never commit actual leads, CSV lists, passwords or secrets to this public GitHub repository.**
+5. Keep the browser tab open until **Supabase cloud sync** finishes. Use **Full backup** to save progress separately.
 
-**Do not put actual lead CSV files, phone lists, credentials or private backups in this public repository.** Instead, use the app's *Import leads* button after opening it in your own browser.
+Each authenticated user owns **their own leads** in this MVP. Leads are not automatically shared between staff members. A team-wide CRM with admin/team roles would need additional authorization design.
 
-Use the outreach features only for contacts that have agreed to the relevant channel. Verify permissions yourself. Respect opt-outs. The app never auto-sends messages, never runs a bulk WhatsApp campaign and never claims to have sent messages.
+## CRM functionality
 
-Phone numbers with **10 digits are treated as Indian numbers (+91)** when generating WhatsApp links; other numbers should be provided in international format. Check the recipient before sending.
+- Authenticated email/password login; explicit sign-out
+- CSV import; skip missing phone numbers; deduplicate by business name + phone
+- Search/filter by status, priority and website
+- Personalized, editable outreach intro; manual `wa.me` opening only after confirmation of permission to contact
+- Calls via `tel:`; status, notes, follow-up dates, dashboard stats
+- Supabase cloud persistence (separate user rows protected with four RLS policies)
+- CSV export and full-fidelity JSON backup/restore
+- Prompted migration for any old browser-only leads saved by the original MVP
 
-## Run locally
+## Security notes
 
-Open `index.html` in a browser (or serve this folder over a simple local web server). Import your CSV, work on leads and export backups.
+- Frontend contains **only the Supabase publishable key** (intended for browser use). Never add the `service_role` key, secret keys, or passwords to the repo.
+- RLS restricts SELECT/INSERT/UPDATE/DELETE using `auth.uid() = user_id`. Unauthorized users cannot view another user's leads through the Data API.
+- Authentication is enforced before the dashboard becomes visible. Supabase hosts the data, not GitHub.
+- An old browser-only lead cache may still remain in the importing browser to prevent data loss. After verifying cloud sync and exporting a backup, you can clear old site data manually.
+- The Supabase account has *existing unrelated security advisories*; review them separately in Supabase Advisors before broader production use.
+- Do not send unsolicited or bulk WhatsApp messages. Confirm permission, review drafts, and honor opt-outs.
 
-## GitHub Pages deployment
+## Local development
 
-1. Open **Settings → Pages** in this GitHub repository.
-2. Choose **GitHub Actions** as the build/deployment source, if not selected.
-3. Open **Actions**, find **Deploy UnboxedThinking CRM**, and check the latest run. You can trigger it with **Run workflow**.
-4. When successful, the expected project site URL is `https://akxstadvertising.github.io/whatsapp/`.
+Open `index.html` with a modern browser or serve the directory using a static local server. Supabase Auth requires a working network connection and the external pinned Supabase JS library. No secrets or environment files are needed for this static client.
 
-The workflow intentionally packages **only** `index.html`, `assets/app.css` and `assets/app.js` into the published artifact.
+## CSV columns
 
-## CSV fields
+`Business Name, Niche, Founder, Phone, Email, Address, Website, Rating, Reviews, Website Status, Digital Score, Lead Priority`.
 
-`Business Name, Niche, Founder, Phone, Email, Address, Website, Rating, Reviews, Website Status, Digital Score, Lead Priority`
+10-digit phone numbers are assumed to use Indian country code +91 for click-to-chat; all others should include their correct country code.
 
-CSV import **merges** leads by business name + phone and keeps existing statuses/notes. Full JSON backup **replaces** current data upon confirmation. A CSV export is for spreadsheets and should not be used as a full-fidelity restore; use the JSON backup instead.
+## Deployment
 
-## Production roadmap
+GitHub Actions workflow at `.github/workflows/pages.yml` uploads **only** the app HTML/CSS/JS and configures Pages. If the workflow fails at `Configure GitHub Pages` with a permissions error, enable Pages from repo settings first.
 
-For a **truly private, multi-device CRM**, deploy a backend with Supabase Authentication, PostgreSQL and row-level security (RLS), and host the authenticated frontend on a production-compatible service. Do not connect public lead data to a database without access control. Add scheduled follow-up reminders only with the user's express approval.
+## Limitations
 
-UnboxedThinking · AKxST Advertising.
+- No password reset page or self-registration form yet
+- Supabase-backed, per-user CRM, not shared team workspaces
+- Cloud sync uses batched browser requests; avoid closing the tab while a large CSV import is syncing
+- App-level and integration testing in a real browser/account still required after Pages activation
