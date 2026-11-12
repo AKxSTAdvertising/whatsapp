@@ -4,7 +4,7 @@
  const KEY='unboxedthinking.crm.v1';
  const STATUS=['New','Contacted','Interested','Follow-up','Meeting booked','Won','Not interested'];
  const HEADERS=['Business Name','Niche','Founder','Phone','Email','Address','Website','Rating','Reviews','Website Status','Digital Score','Lead Priority'];
- let leads=[],page=1,activeId=null,toastTimer=null;
+ let leads=[],page=1,activeId=null,toastTimer=null,cloudReady=false,syncQueue=Promise.resolve(),synced=new Map(),syncPending=0;
  const $=id=>document.getElementById(id);
  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const val=(o,k)=>String(o?.[k]??'').trim();
@@ -12,8 +12,22 @@
  const stamp=()=>new Date().toISOString();
  const uid=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);
  function notify(msg){const e=$('toast');e.textContent=msg;e.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('show'),3700)}
- function save(){try{localStorage.setItem(KEY,JSON.stringify(leads));return true}catch(err){notify('Storage full or disabled. Export a backup, then use a supported browser.');return false}}
- function load(){try{let parsed=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(parsed))leads=parsed.filter(x=>x&&typeof x==='object'&&x.id).slice(0,50000)}catch(e){notify('Could not read saved data. No changes made.')}}
+ function snapshot(l){return JSON.stringify(l)}
+ function markSynced(){synced=new Map(leads.map(l=>[dedupKey(l),snapshot(l)]))}
+ function save(){
+   if(!cloudReady){notify('Please sign in to save your leads.');return false}
+   const changed=leads.filter(l=>synced.get(dedupKey(l))!==snapshot(l)).map(l=>structuredClone(l));
+   if(!changed.length)return true;
+   syncPending++;const pill=document.querySelector('.local-pill');if(pill)pill.textContent='● Syncing '+changed.length+' leads…';
+   syncQueue=syncQueue.catch(()=>{}).then(async()=>{
+     await window.UnboxedCloud.put(changed);
+     for(const l of changed)synced.set(dedupKey(l),snapshot(l));
+     notify('Cloud sync complete ('+changed.length+' updated).');
+   }).catch(err=>{notify('Cloud sync FAILED: '+err.message+' — do not close this tab; export a backup.');console.error('Cloud sync error',err)}).finally(()=>{
+     syncPending--;if(pill&&syncPending===0)pill.textContent='● Supabase cloud sync';
+   });
+   return true;
+ }
  function cleanNumber(phone){let d=String(phone||'').replace(/[^\d]/g,'');if(d.length===10)d='91'+d;return d.length>=10&&d.length<=15?d:''}
  function truthyPhone(p){return !!String(p||'').trim()&&!/^(n\/?a|na|none|null|nan|undefined|[-–])$/i.test(String(p).trim())}
  function priorityRank(p){const x=String(p||'').toLowerCase();if(x.includes('high')||x==='hot'||x==='1')return 3;if(x.includes('medium')||x==='warm'||x==='2')return 2;return 1}
@@ -35,13 +49,14 @@
    if(!truthyPhone(raw.Phone)){skipped++;continue}
    const key=dedupKey(raw);if(existing.has(key)){duplicates++;continue}
    const lead=normalize(raw);leads.push(lead);existing.add(key);added++}
-  save();page=1;render();notify('Imported '+added+' leads. '+duplicates+' duplicates, '+skipped+' missing phones skipped.');return added
+  save();page=1;render();notify('Import queued: '+added+' leads. '+duplicates+' duplicates, '+skipped+' missing phones skipped. Keep this tab open until sync finishes.');return added
  }
  function dedupKey(o){return (val(o,'Phone').replace(/\D/g,'')+'|'+val(o,'Business Name').toLowerCase().replace(/\s+/g,' '))}
- function handleJSON(text){const parsed=JSON.parse(text);const arr=Array.isArray(parsed)?parsed:parsed.leads;if(!Array.isArray(arr))throw new Error('Not a valid lead backup.');
-  if(!confirm('Restore '+arr.length+' leads? This will replace your current browser data. Export a backup first.'))return;
+ async function handleJSON(text){const parsed=JSON.parse(text);const arr=Array.isArray(parsed)?parsed:parsed.leads;if(!Array.isArray(arr))throw new Error('Not a valid lead backup.');
+  if(!confirm('Restore '+arr.length+' leads? This will REPLACE your existing cloud CRM leads. Export a full backup first.'))return;
   const restored=arr.filter(o=>o&&typeof o==='object'&&truthyPhone(o.Phone)).map(normalize);
-  const old=leads;leads=restored;if(!save()){leads=old;return}page=1;render();notify('Restored '+restored.length+' leads.')}
+  await syncQueue;await window.UnboxedCloud.clear();await window.UnboxedCloud.put(restored);
+  leads=restored;markSynced();page=1;render();notify('Restored '+restored.length+' leads to Supabase.')}
  function csvCell(x){let s=String(x??'');if(/^[\s]*[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
  function download(name,blob){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  function exportCSV(){if(!leads.length){notify('Import leads first.');return}
@@ -89,10 +104,10 @@
  const url='https://wa.me/'+phone+'?text='+encodeURIComponent(pitchText());window.open(url,'_blank','noopener,noreferrer');notify('WhatsApp draft opened. Review and send manually; mark status after sending.')}
  function callLead(){const l=persistModal();if(!l)return;const d=String(l.Phone).replace(/[^\d+]/g,'');if(!d){notify('Phone number missing.');return}window.location.href='tel:'+encodeURIComponent(d)}
  function bind(){for(const id of ['importTop','importEmpty','importSettings'])$(id).addEventListener('click',()=>$('fileInput').click());
-  $('fileInput').addEventListener('change',async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024){notify('File is too large (limit: 10 MB).');return}try{const t=await f.text();if(f.name.toLowerCase().endsWith('.json'))handleJSON(t);else importCSV(t)}catch(err){notify('Import failed: '+err.message)}});
+  $('fileInput').addEventListener('change',async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024){notify('File is too large (limit: 10 MB).');return}try{const t=await f.text();if(f.name.toLowerCase().endsWith('.json'))await handleJSON(t);else importCSV(t)}catch(err){notify('Import failed: '+err.message)}});
   $('exportBtn').addEventListener('click',exportCSV);$('backupBtn').addEventListener('click',backup);
   $('restoreInfo').addEventListener('click',()=>notify('Full backup saves status, notes and permissions. Import that JSON to restore them. CSV export is for spreadsheet use.'));
-  $('clearBtn').addEventListener('click',()=>{if(confirm('Permanently delete all leads and progress stored in this browser? Export a backup first.')){leads=[];localStorage.removeItem(KEY);page=1;render();notify('Browser data cleared.')}});
+  $('clearBtn').addEventListener('click',async()=>{if(confirm('Permanently delete all CRM leads from your Supabase account? Export a backup first. This cannot be undone.')){try{await syncQueue;await window.UnboxedCloud.clear();leads=[];markSynced();page=1;render();notify('Cloud CRM leads deleted.')}catch(e){notify('Could not delete leads: '+e.message)}}});
   for(const id of ['search','statusFilter','priorityFilter','websiteFilter','sort'])$(id).addEventListener(id==='search'?'input':'change',()=>{page=1;render()});
   $('prevPage').addEventListener('click',()=>{page--;render()});$('nextPage').addEventListener('click',()=>{page++;render()});
   document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open)});
@@ -103,5 +118,37 @@
   $('mobileMenu').addEventListener('click',()=>$('mobileMenu').closest('.app-shell').querySelector('.sidebar').classList.toggle('is-open'));
   document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.nav-link').forEach(x=>x.classList.remove('active'));a.classList.add('active');document.querySelector('.sidebar').classList.remove('is-open')}));
  }
- load();bind();render();
+  async function enterCloud(){
+  if(!window.UnboxedCloud||window.UnboxedCloud.error){$('loginError').textContent=window.UnboxedCloud?.error||'Could not load Supabase library.';return}
+  $('loginError').textContent='Loading private leads…';
+  try{
+    const data=await window.UnboxedCloud.load();
+    leads=data.map(normalize);
+    cloudReady=true;markSynced();page=1;render();
+    document.body.classList.remove('auth-locked');$('authGate').hidden=true;
+    $('loginError').textContent='';
+    const previous=JSON.parse(localStorage.getItem(KEY)||'[]');
+    if(Array.isArray(previous)&&previous.length&&confirm('Found '+previous.length+' leads from your earlier browser-only version. Merge these into your private Supabase account?')){
+      const existing=new Set(leads.map(dedupKey));let total=0;
+      for(const old of previous){if(!old||!truthyPhone(old.Phone))continue;const normalized=normalize(old);const key=dedupKey(normalized);if(!existing.has(key)){leads.push(normalized);existing.add(key);total++}}
+      if(total){save();render();notify(total+' old browser leads queued for cloud sync.')}else notify('Existing browser leads already present in cloud.');
+      // Keep the original browser copy until you export a backup and verify cloud sync.
+    }
+  }catch(e){cloudReady=false;document.body.classList.add('auth-locked');$('authGate').hidden=false;$('loginError').textContent='Unable to load private leads: '+e.message;}
+ }
+ async function bootstrap(){
+  bind();render();
+  $('loginForm').addEventListener('submit',async e=>{
+   e.preventDefault();const b=$('loginButton');b.disabled=true;b.textContent='Signing in…';$('loginError').textContent='';
+   try{await window.UnboxedCloud.signIn($('loginEmail').value.trim(),$('loginPassword').value);$('loginPassword').value='';await enterCloud()}
+   catch(err){$('loginError').textContent=err.message||'Sign-in failed';}finally{b.disabled=false;b.textContent='Sign in securely →'}
+  });
+  $('logoutBtn').addEventListener('click',async()=>{
+   if(syncPending>0){notify('Finish syncing your leads before signing out.');return}
+   try{await window.UnboxedCloud.signOut();leads=[];synced.clear();cloudReady=false;render();document.body.classList.add('auth-locked');$('authGate').hidden=false;notify('Signed out.')}catch(e){notify('Sign out failed: '+e.message)}
+  });
+  if(!window.UnboxedCloud||window.UnboxedCloud.error){$('loginError').textContent=window.UnboxedCloud?.error||'Supabase unavailable.';return}
+  try{const sess=await window.UnboxedCloud.session();if(sess?.user)await enterCloud()}catch(e){$('loginError').textContent='Session error: '+e.message}
+ }
+ bootstrap();
 })();
