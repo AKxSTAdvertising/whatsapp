@@ -59,3 +59,30 @@ body.auth-locked .app-shell{display:none}
 
 /* Preserve the overview KPI grid layout. */
 .app-shell[data-page="overview"] .stats{display:grid}
+
+/* Shared Message Manager */
+.app-shell[data-page="messages"] #overview,.app-shell[data-page="messages"] .privacy-note,.app-shell[data-page="messages"] .stats,.app-shell[data-page="messages"] #leads,.app-shell[data-page="messages"] #followups,.app-shell[data-page="messages"] #settings,.app-shell[data-page="messages"] #whatsappPage{display:none}
+.app-shell[data-page="messages"] #messageCenter{display:block}
+.message-center .section-header{align-items:center}
+.message-audience-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:0 0 20px}
+.audience-card,.template-card,.message-preview-panel{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow)}
+.audience-card{padding:20px 23px}
+.audience-card span,.template-kicker{display:block;font-size:10px;letter-spacing:1.3px;color:#858aa0;font-weight:800}
+.audience-card strong{display:block;font-size:34px;letter-spacing:-1px;margin:8px 0 2px}
+.audience-card small{color:var(--muted);font-size:11px}
+.template-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.template-card{padding:22px}
+.template-head{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:17px}
+.template-head h3,.message-preview-panel h3{margin:6px 0;font-size:18px}
+.template-head p{font-size:12px;color:var(--muted);margin:0}
+.template-tag{padding:6px 9px;border-radius:7px;background:#f1edff;color:#7658db;font-size:9px;font-weight:800;letter-spacing:.8px}
+.followup-tag{background:#eaf1ff;color:#587cbd}
+.template-card textarea{width:100%;min-height:205px;resize:vertical;border:1px solid #e5e6ef;border-radius:10px;padding:14px;line-height:1.65;font-size:13px;color:var(--ink)}
+.template-foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#9297a7;font-size:10px;margin-top:10px}
+.message-preview-panel{margin-top:18px;padding:22px}
+.message-preview-panel>div:first-child{margin-bottom:13px}
+.preview-tabs{display:flex;gap:8px;margin-bottom:12px}
+.message-preview{white-space:pre-wrap;background:#f7f7fb;border:1px solid #ececf3;border-radius:10px;padding:16px;min-height:70px;line-height:1.6;font-size:13px}
+.shared-message-preview{white-space:pre-wrap;background:#f7f7fb;border:1px solid #ececf3;border-radius:9px;padding:13px;line-height:1.55;font-size:12px;margin:12px 0}
+.app-shell[data-page="messages"] .page-heading{display:none}
+@media(max-width:800px){.template-grid,.message-audience-grid{grid-template-columns:1fr}.message-center .section-header{align-items:start;flex-direction:column}.message-center .section-header .btn{width:100%}}
