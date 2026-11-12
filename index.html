@@ -4,7 +4,7 @@
 <meta name="description" content="UnboxedThinking private, browser-based lead outreach workspace.">
 <meta name="robots" content="noindex,nofollow">
 <title>UnboxedThinking — Lead Workspace</title>
-<link rel="stylesheet" href="./assets/app.css?v=1"></head>
+<link rel="stylesheet" href="./assets/app.css?v=3"></head>
 <body class="auth-locked">
 <div class="app-shell">
 <aside class="sidebar">
@@ -21,7 +21,7 @@
 <div class="main-area">
 <header class="topbar"><div><button class="mobile-menu" id="mobileMenu" aria-label="Toggle menu">☰</button><span class="top-eyebrow">YOUR SALES OPERATING SYSTEM</span></div><div class="top-right"><span class="local-pill"><span class="status-dot"></span> Supabase sync</span><span class="avatar">UT</span></div></header>
 <main>
-<section class="page-heading" id="overview"><div><p class="overline">WORK SMARTER · CLOSE BETTER</p><h1>Good morning, <span>let's build momentum.</span></h1><p>Every conversation counts. Keep your best opportunities moving.</p></div><div class="top-actions"><button class="btn btn-outline" id="logoutBtn">Sign out</button><button class="btn btn-primary" id="importTop">＋ Import leads</button></div></section>
+<section class="page-heading" id="overview"><div><p class="overline">WORK SMARTER · CLOSE BETTER</p><h1>Good morning, <span>let's build momentum.</span></h1><p>Every conversation counts. Keep your best opportunities moving.</p></div><div class="top-actions"><button class="btn btn-outline" id="logoutBtn">Sign out</button><button class="btn btn-outline" id="addSingleTop">＋ Add single lead</button><button class="btn btn-primary" id="importTop">＋ Import leads</button></div></section>
 <div class="privacy-note" role="note">🔒 <strong>Secure cloud CRM:</strong> Leads sync to your signed-in Supabase account. Access is protected with row-level security. Use your own account and export backups regularly.</div>
 <section class="stats" aria-label="Lead summary">
  <div class="stat"><span>ALL LEADS</span><strong id="statTotal">0</strong><small>Businesses in pipeline</small><i class="stat-mark purple">↗</i></div>
@@ -31,6 +31,7 @@
 </section>
 <section class="workspace" id="leads">
  <div class="section-header"><div><p class="overline">MANAGE YOUR PIPELINE</p><h2>Lead directory <span class="count" id="leadCount">0</span></h2></div><div class="toolbar"><button class="btn btn-outline" id="exportBtn">↧ Export CSV</button><button class="btn btn-outline" id="backupBtn">↧ Full backup</button></div></div>
+ <div class="bulk-toolbar"><label class="bulk-check"><input id="selectAllMatching" type="checkbox"> Select all filtered leads</label><span id="selectedCount">0 selected</span><button class="btn btn-danger btn-small" id="bulkDeleteBtn" disabled>Delete selected</button></div>
  <div class="table-panel">
  <div class="filters"><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search business, niche, phone, city..." autocomplete="off"></label>
  <select id="statusFilter" aria-label="Filter by status"><option value="">All statuses</option><option>New</option><option>Contacted</option><option>Interested</option><option>Follow-up</option><option>Meeting booked</option><option>Won</option><option>Not interested</option></select>
@@ -38,7 +39,7 @@
  <select id="websiteFilter" aria-label="Filter by website"><option value="">All website statuses</option></select>
  <select id="sort" aria-label="Sort leads"><option value="priority">Priority first</option><option value="name">Business A–Z</option><option value="followup">Follow-up soonest</option><option value="recent">Recently updated</option></select>
  </div>
- <div class="table-scroller"><table><thead><tr><th>BUSINESS</th><th>PHONE</th><th>PRIORITY</th><th>WEBSITE</th><th>STATUS</th><th>NEXT FOLLOW-UP</th><th>ACTION</th></tr></thead><tbody id="leadRows"></tbody></table></div>
+ <div class="table-scroller"><table><thead><tr><th><input type="checkbox" id="selectPage" aria-label="Select all leads on this page"></th><th>BUSINESS</th><th>PHONE</th><th>PRIORITY</th><th>WEBSITE</th><th>STATUS</th><th>NEXT FOLLOW-UP</th><th>ACTION</th></tr></thead><tbody id="leadRows"></tbody></table></div>
  <div class="empty" id="emptyState" hidden><div class="empty-icon">✧</div><h3>No leads to show</h3><p id="emptyMessage">Import your CSV to start your outreach workspace.</p><button class="btn btn-primary" id="importEmpty">Import CSV</button></div>
  <div class="pagination"><span id="pageSummary">0 leads</span><div><button id="prevPage" class="btn btn-outline btn-small">← Previous</button><span id="pageNumber">1 / 1</span><button id="nextPage" class="btn btn-outline btn-small">Next →</button></div></div>
  </div>
@@ -49,6 +50,18 @@
 </main></div></div>
 <input id="fileInput" type="file" accept=".csv,text/csv,.json,application/json" hidden>
 <div class="modal-backdrop" id="detailBackdrop" hidden><section class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle"><div class="modal-heading"><div><span class="overline">LEAD DETAILS</span><h2 id="detailTitle">Business</h2></div><button class="icon-btn" id="closeDetail" aria-label="Close">×</button></div><div id="detailContent"></div></section></div>
+<div class="modal-backdrop" id="singleBackdrop" hidden><section class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="singleTitle"><div class="modal-heading"><div><p class="overline">MANUAL ENTRY</p><h2 id="singleTitle">Add single lead</h2></div><button class="icon-btn" id="closeSingle" aria-label="Close">×</button></div>
+<form id="singleForm" class="single-form">
+<div class="detail-fields">
+<div class="field wide"><label for="singleName">Business name *</label><input id="singleName" name="business" maxlength="180" required placeholder="Business name"></div>
+<div class="field wide"><label for="singlePhone">Phone number *</label><input id="singlePhone" name="phone" type="tel" inputmode="tel" maxlength="30" required placeholder="+91 98765 43210"><small>10-digit Indian number or international format with country code.</small></div>
+<div class="field"><label for="singleNiche">Niche</label><input id="singleNiche" maxlength="120" placeholder="Restaurant, salon, etc."></div>
+<div class="field"><label for="singlePriority">Priority</label><select id="singlePriority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+<div class="field"><label for="singleWebsiteStatus">Website status</label><select id="singleWebsiteStatus"><option value="">Unknown</option><option>No website</option><option>Has website</option></select></div>
+<div class="field"><label for="singleWebsite">Website URL</label><input id="singleWebsite" maxlength="250" placeholder="example.com"></div>
+<div class="field wide"><label for="singleNotes">Notes</label><textarea id="singleNotes" maxlength="10000" placeholder="Anything worth remembering..."></textarea></div></div>
+<p id="singleError" class="login-error" aria-live="polite"></p>
+<div class="modal-actions"><button class="btn btn-primary" id="singleSave" type="submit">Save lead to Supabase</button><button class="btn btn-outline" type="button" id="singleCancel">Cancel</button></div></form></section></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <section id="authGate" class="auth-gate" aria-labelledby="loginHeading" role="main"><div class="auth-card">
  <span class="auth-symbol">U<span>.</span></span><p class="overline">UNBOXEDTHINKING · PRIVATE CRM</p><h1 id="loginHeading">Welcome back.</h1>
@@ -59,5 +72,5 @@
  <button class="btn btn-primary" id="loginButton" type="submit">Sign in securely →</button></form>
  <p class="auth-foot">No public signup. Ask your Supabase administrator for an invited account.</p></div></section>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.js" defer></script>
-<script src="./assets/cloud.js?v=2" defer></script>
-<script src="./assets/app.js?v=2" defer></script></body></html>
+<script src="./assets/cloud.js?v=3" defer></script>
+<script src="./assets/app.js?v=3" defer></script></body></html>
