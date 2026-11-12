@@ -319,7 +319,7 @@
   bind();updateNavigation();render();
   $('loginForm').addEventListener('submit',async e=>{
    e.preventDefault();const b=$('loginButton');b.disabled=true;b.textContent='Signing in…';$('loginError').textContent='';
-   try{await window.UnboxedCloud.signIn($('loginEmail').value.trim(),$('loginPassword').value);$('loginPassword').value='';await enterCloud()}
+   try{if(!window.UnboxedCloud||typeof window.UnboxedCloud.signIn!=='function')throw new Error(window.UnboxedCloud?.error||'Supabase login service is still loading. Refresh the page and try again.');await window.UnboxedCloud.signIn($('loginEmail').value.trim(),$('loginPassword').value);$('loginPassword').value='';await enterCloud()}
    catch(err){$('loginError').textContent=err.message||'Sign-in failed';}finally{b.disabled=false;b.textContent='Sign in securely →'}
   });
   $('logoutBtn').addEventListener('click',async()=>{
