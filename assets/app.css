@@ -56,3 +56,6 @@ body.auth-locked .app-shell{display:none}
 .wa-bulk-bar #waSelectedCount{margin-left:auto;color:#7e8498;font-size:12px}
 .whatsapp-page .workflow-hint{margin-top:15px}
 @media(max-width:575px){.wa-bulk-bar #waSelectedCount{margin-left:0}.wa-bulk-bar #waBulkConsent{width:100%}}
+
+/* Preserve the overview KPI grid layout. */
+.app-shell[data-page="overview"] .stats{display:grid}
