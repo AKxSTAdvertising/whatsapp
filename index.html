@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0c1020">
+<meta name="description" content="UnboxedThinking private, browser-based lead outreach workspace.">
+<meta name="robots" content="noindex,nofollow">
+<title>UnboxedThinking — Lead Workspace</title>
+<link rel="stylesheet" href="./assets/app.css?v=1"></head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+ <a class="brand" href="./" aria-label="UnboxedThinking home"><span class="brand-icon">U<span>.</span></span><span class="brand-copy"><strong>UnboxedThinking</strong><small>LEAD WORKSPACE</small></span></a>
+ <div class="side-label">WORKSPACE</div>
+ <nav class="side-nav" aria-label="Workspace navigation">
+ <a href="#overview" class="nav-link active" data-nav="overview"><span>◫</span> Overview</a>
+ <a href="#leads" class="nav-link" data-nav="leads"><span>☷</span> All leads</a>
+ <a href="#followups" class="nav-link" data-nav="followups"><span>◷</span> Follow-ups</a>
+ <a href="#settings" class="nav-link" data-nav="settings"><span>⚙</span> Data & export</a>
+ </nav>
+ <div class="side-note"><span class="status-dot"></span> Local-only workspace<p>Your lead data stays in this browser. No contacts are sent to a server.</p></div>
+</aside>
+<div class="main-area">
+<header class="topbar"><div><button class="mobile-menu" id="mobileMenu" aria-label="Toggle menu">☰</button><span class="top-eyebrow">YOUR SALES OPERATING SYSTEM</span></div><div class="top-right"><span class="local-pill"><span class="status-dot"></span> Browser storage</span><span class="avatar">UT</span></div></header>
+<main>
+<section class="page-heading" id="overview"><div><p class="overline">WORK SMARTER · CLOSE BETTER</p><h1>Good morning, <span>let's build momentum.</span></h1><p>Every conversation counts. Keep your best opportunities moving.</p></div><button class="btn btn-primary" id="importTop">＋ Import leads</button></section>
+<div class="privacy-note" role="note">🔒 <strong>Private MVP:</strong> This is a single-browser CRM, not a password-protected cloud app. Avoid shared computers. Export backups regularly.</div>
+<section class="stats" aria-label="Lead summary">
+ <div class="stat"><span>ALL LEADS</span><strong id="statTotal">0</strong><small>Businesses in pipeline</small><i class="stat-mark purple">↗</i></div>
+ <div class="stat"><span>CONTACTED</span><strong id="statContacted">0</strong><small>Outreach started</small><i class="stat-mark blue">↗</i></div>
+ <div class="stat"><span>INTERESTED</span><strong id="statInterested">0</strong><small>Positive responses</small><i class="stat-mark green">✦</i></div>
+ <div class="stat"><span>DUE FOLLOW-UPS</span><strong id="statDue">0</strong><small>Today & overdue</small><i class="stat-mark orange">◷</i></div>
+</section>
+<section class="workspace" id="leads">
+ <div class="section-header"><div><p class="overline">MANAGE YOUR PIPELINE</p><h2>Lead directory <span class="count" id="leadCount">0</span></h2></div><div class="toolbar"><button class="btn btn-outline" id="exportBtn">↧ Export CSV</button><button class="btn btn-outline" id="backupBtn">↧ Full backup</button></div></div>
+ <div class="table-panel">
+ <div class="filters"><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search business, niche, phone, city..." autocomplete="off"></label>
+ <select id="statusFilter" aria-label="Filter by status"><option value="">All statuses</option><option>New</option><option>Contacted</option><option>Interested</option><option>Follow-up</option><option>Meeting booked</option><option>Won</option><option>Not interested</option></select>
+ <select id="priorityFilter" aria-label="Filter by priority"><option value="">All priorities</option></select>
+ <select id="websiteFilter" aria-label="Filter by website"><option value="">All website statuses</option></select>
+ <select id="sort" aria-label="Sort leads"><option value="priority">Priority first</option><option value="name">Business A–Z</option><option value="followup">Follow-up soonest</option><option value="recent">Recently updated</option></select>
+ </div>
+ <div class="table-scroller"><table><thead><tr><th>BUSINESS</th><th>PHONE</th><th>PRIORITY</th><th>WEBSITE</th><th>STATUS</th><th>NEXT FOLLOW-UP</th><th>ACTION</th></tr></thead><tbody id="leadRows"></tbody></table></div>
+ <div class="empty" id="emptyState" hidden><div class="empty-icon">✧</div><h3>No leads to show</h3><p id="emptyMessage">Import your CSV to start your outreach workspace.</p><button class="btn btn-primary" id="importEmpty">Import CSV</button></div>
+ <div class="pagination"><span id="pageSummary">0 leads</span><div><button id="prevPage" class="btn btn-outline btn-small">← Previous</button><span id="pageNumber">1 / 1</span><button id="nextPage" class="btn btn-outline btn-small">Next →</button></div></div>
+ </div>
+</section>
+<section class="bottom-grid" id="followups"><div class="panel"><div class="panel-head"><h2>Due follow-ups</h2><span class="soft-chip">Action needed</span></div><div id="dueList" class="due-list"></div></div><div class="panel guide"><p class="overline">YOUR OUTREACH PLAYBOOK</p><h2>Make it personal.<br><em>Keep it human.</em></h2><p>Prioritize relevant businesses, confirm permission to contact, then personalize your introduction. WhatsApp opens a draft only; you always review and send manually.</p><button class="btn btn-outline" id="openFirst">View top lead →</button></div></section>
+<section class="settings" id="settings"><div><p class="overline">DATA CONTROL</p><h2>Own your pipeline</h2><p>Import the cleaned lead CSV, export your progress, or restore a full JSON backup. Leads are never committed to the public GitHub repository.</p></div><div class="settings-actions"><button class="btn btn-primary" id="importSettings">Import CSV / JSON</button><button class="btn btn-outline" id="restoreInfo">How backups work</button><button class="btn btn-danger" id="clearBtn">Delete browser data</button></div></section>
+<footer>UnboxedThinking · Private lead workspace MVP <span>No WhatsApp API · No auto-send · No server database</span></footer>
+</main></div></div>
+<input id="fileInput" type="file" accept=".csv,text/csv,.json,application/json" hidden>
+<div class="modal-backdrop" id="detailBackdrop" hidden><section class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle"><div class="modal-heading"><div><span class="overline">LEAD DETAILS</span><h2 id="detailTitle">Business</h2></div><button class="icon-btn" id="closeDetail" aria-label="Close">×</button></div><div id="detailContent"></div></section></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="./assets/app.js?v=1" defer></script></body></html>
