@@ -15,7 +15,7 @@
   async function load(){
     const user=await requireUser();const result=[];
     for(let from=0;;from+=500){
-      const {data,error}=await client.from(table).select('payload').eq('user_id',user.id).order('created_at',{ascending:true}).range(from,from+499);
+      const {data,error}=await client.from(table).select('dedup_key,payload').eq('user_id',user.id).neq('dedup_key','__crm_settings__').order('created_at',{ascending:true}).range(from,from+499);
       if(error)throw error;result.push(...(data||[]).map(x=>x.payload).filter(x=>x&&typeof x==='object'));
       if(!data||data.length<500)break;
       if(from>=50000)throw new Error('Too many leads to load in one session.');
@@ -35,6 +35,18 @@
       const {error}=await client.from(table).upsert(rows,{onConflict:'user_id,dedup_key'});
       if(error)throw error;
     }
+  }
+  async function loadSettings(){
+    const user=await requireUser();
+    const {data,error}=await client.from(table).select('payload').eq('user_id',user.id).eq('dedup_key','__crm_settings__').maybeSingle();
+    if(error)throw error;
+    return data?.payload?.messageTemplates||null;
+  }
+  async function saveSettings(messageTemplates){
+    const user=await requireUser();
+    const row={user_id:user.id,dedup_key:'__crm_settings__',payload:{__crmSettings:true,messageTemplates,updated_at:new Date().toISOString()},updated_at:new Date().toISOString()};
+    const {error}=await client.from(table).upsert(row,{onConflict:'user_id,dedup_key'});
+    if(error)throw error;
   }
   async function removeKeys(keys){
     if(!Array.isArray(keys)||!keys.length)return 0;
@@ -57,6 +69,6 @@
     signIn:async(email,password)=>{const {data,error}=await client.auth.signInWithPassword({email,password});if(error)throw error;return data},
     session:async()=>{const {data,error}=await client.auth.getSession();if(error)throw error;return data.session},
     signOut:async()=>{const {error}=await client.auth.signOut();if(error)throw error},
-    load,put,clear,removeKeys
+    load,put,loadSettings,saveSettings,clear,removeKeys
   };
 })();
