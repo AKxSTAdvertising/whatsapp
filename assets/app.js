@@ -110,7 +110,8 @@
  }
  function renderMessagePreview(){
   const sample={'Business Name':'Sample Business','Niche':'Retail','Founder':'Alex'};
-  $('messagePreview').textContent=fillTemplate(previewType==='general'?messageTemplates.general:messageTemplates.followup,sample)||'Write a message above to see the preview.';
+  const general=$('generalMessageTemplate').value,followup=$('followupMessageTemplate').value;
+  $('messagePreview').textContent=fillTemplate(previewType==='general'?general:followup,sample)||'Write a message above to see the preview.';
   $('previewGeneral').classList.toggle('btn-primary',previewType==='general');
   $('previewFollowup').classList.toggle('btn-primary',previewType==='followup');
  }
