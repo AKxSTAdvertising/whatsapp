@@ -94,6 +94,11 @@
   leads=restored;selected.clear();markSynced();page=1;render();notify('Restored '+restored.length+' leads to Supabase.')}
  function csvCell(x){let s=String(x??'');if(/^[\s]*[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
  function download(name,blob){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ function downloadCSVTemplate(){
+  const out=[HEADERS.map(csvCell).join(',')];
+  download('unboxedthinking-leads-template.csv',new Blob(['\\uFEFF'+out.join('\\r\\n')],{type:'text/csv;charset=utf-8'}));
+  notify('CSV import template downloaded. Fill Business Name and Phone, then import it.');
+ }
  function exportCSV(){if(!leads.length){notify('Import leads first.');return}
   const cols=[...HEADERS,'Status','Follow-up Date','Notes','Contact Permission','First Draft','Followup Draft','Sent At','Replied At','Followup Sent At','Updated'];
   const out=[cols.map(csvCell).join(',')];for(const l of leads){out.push([...HEADERS.map(k=>l[k]),l.status,l.followup,l.notes,l.consent?'Yes':'No',l.firstDraft,l.followupDraft,l.sentAt,l.repliedAt,l.followupSentAt,l.updated].map(csvCell).join(','))}
@@ -355,7 +360,7 @@
   $('selectPage').addEventListener('change',e=>{const list=filtered().slice((page-1)*15,page*15);for(const l of list){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}render()});
   $('selectAllMatching').addEventListener('change',e=>{for(const l of filtered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}render()});
   $('leadRows').addEventListener('change',e=>{if(!e.target.matches('[data-select]'))return;if(e.target.checked)selected.add(e.target.dataset.select);else selected.delete(e.target.dataset.select);render()});
-  $('exportBtn').addEventListener('click',exportCSV);$('backupBtn').addEventListener('click',backup);
+  $('exportBtn').addEventListener('click',exportCSV);$('backupBtn').addEventListener('click',backup);$('downloadTemplateBtn').addEventListener('click',downloadCSVTemplate);
   $('restoreInfo').addEventListener('click',()=>notify('Full backup saves status, notes and permissions. Import that JSON to restore them. CSV export is for spreadsheet use.'));
   $('clearBtn').addEventListener('click',async()=>{if(confirm('Permanently delete ALL CRM leads from your Supabase account? Your shared message templates will be preserved. This cannot be undone.')){try{await syncQueue;const removed=await window.UnboxedCloud.clear();leads=[];selected.clear();markSynced();page=1;render();notify('Deleted '+removed+' leads from your cloud CRM.')}catch(e){notify('Could not delete leads: '+e.message)}}});
   for(const id of ['search','statusFilter','priorityFilter','websiteFilter','sort'])$(id).addEventListener(id==='search'?'input':'change',()=>{page=1;render()});
