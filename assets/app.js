@@ -360,6 +360,7 @@
   const fallback=$('waWebFallback');if(fallback){fallback.href=webUrl;fallback.hidden=false}
   pendingWhatsAppId=l.id;
   try{
+   sessionStorage.setItem('unboxedthinking.whatsappSourceView',activeView);
    localStorage.setItem('unboxedthinking.pendingWhatsAppLead',l.id);
    // Set before opening WhatsApp; Android may not fire visibilitychange reliably.
    sessionStorage.setItem('unboxedthinking.whatsappAway','1');
@@ -368,13 +369,18 @@
   window.location.href=nativeUrl;
   notify('Opening WhatsApp app. If unavailable, use the direct Web link in Manage.')
  }
- function clearWhatsAppReturn(){pendingWhatsAppId='';try{localStorage.removeItem('unboxedthinking.pendingWhatsAppLead');sessionStorage.removeItem('unboxedthinking.whatsappAway')}catch(e){}}
+ function clearWhatsAppReturn(){pendingWhatsAppId='';try{localStorage.removeItem('unboxedthinking.pendingWhatsAppLead');sessionStorage.removeItem('unboxedthinking.whatsappAway');sessionStorage.removeItem('unboxedthinking.whatsappSourceView')}catch(e){}}
  function showWhatsAppReturn(){
   if(!pendingWhatsAppId||!cloudReady||$('whatsappReturnBackdrop').dataset.shown==='1')return;
   let away=false;try{away=sessionStorage.getItem('unboxedthinking.whatsappAway')==='1'}catch(e){}
   if(!away)return;
   const l=leads.find(x=>x.id===pendingWhatsAppId);
   if(!l){clearWhatsAppReturn();return}
+  let sourceView='';try{sourceView=sessionStorage.getItem('unboxedthinking.whatsappSourceView')||''}catch(e){}
+  const interestedChoice=$('whatsappReturnChoices').querySelector('[data-return-status="Interested"]');
+  if(interestedChoice)interestedChoice.hidden=sourceView!=='contacted';
+  const messageSentChoice=$('whatsappReturnChoices').querySelector('[data-return-status="Contacted"]');
+  if(messageSentChoice)messageSentChoice.hidden=false;
   $('whatsappReturnName').textContent=l['Business Name']||'Unnamed business';
   $('whatsappReturnPhone').textContent=l.Phone||'';
   $('whatsappReturnBackdrop').dataset.shown='1';$('whatsappReturnBackdrop').hidden=false;
