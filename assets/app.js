@@ -321,17 +321,24 @@
  function closeFollowupSchedule(saveSchedule){
   const backdrop=$('followupScheduleBackdrop');
   const date=$('scheduleFollowupDate').value,time=$('scheduleFollowupTime').value;
-  if(saveSchedule&&(!date||!time)){notify('Follow-up ke liye date aur time dono select karna mandatory hai.');return}
+  if(saveSchedule&&(!date||!time)){
+   notify('Follow-up ke liye date aur time dono select karna mandatory hai.');
+   (!date?$('scheduleFollowupDate'):$('scheduleFollowupTime')).focus();
+   return;
+  }
   if(saveSchedule){
    $('detailDate').value=date;$('detailTime').value=time;
    $('detailStatus').value='Follow-up';$('followupTimeField').hidden=false;
    $('detailDate').required=true;$('detailTime').required=true;
-  }else{
-   const previous=backdrop.dataset.previousStatus||'New';
-   $('detailStatus').value=previous;
-   $('followupTimeField').hidden=previous!=='Follow-up';
-   $('detailDate').required=previous==='Follow-up';$('detailTime').required=previous==='Follow-up';
+   backdrop.hidden=true;
+   const saved=persistModal();
+   if(saved){closeLead();notify('Follow-up saved. Lead Follow-ups module mein move ho gayi hai.')}
+   return;
   }
+  const previous=backdrop.dataset.previousStatus||'New';
+  $('detailStatus').value=previous;
+  $('followupTimeField').hidden=previous!=='Follow-up';
+  $('detailDate').required=previous==='Follow-up';$('detailTime').required=previous==='Follow-up';
   backdrop.hidden=true;
  }
  function persistModal(){
