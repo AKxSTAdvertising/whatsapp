@@ -70,8 +70,9 @@
  }
  async function clear(){
   const user=await requireUser(),c=await getClient();
-  const {error}=await c.from(table).delete().eq('user_id',user.id).gte('created_at','2000-01-01T00:00:00Z');
+  const {data,error}=await c.from(table).delete().eq('user_id',user.id).neq('dedup_key','__crm_settings__').select('dedup_key');
   if(error)throw error;
+  return (data||[]).length;
  }
  window.UnboxedCloud={
   ready:()=>clientReady,
