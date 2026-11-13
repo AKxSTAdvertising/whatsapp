@@ -307,7 +307,7 @@
  function activeMessage(l){return currentDraft(l)}
  function directWhatsApp(l,message){
   const phone=cleanNumber(l.Phone);if(!phone){notify('Please enter a valid phone number.');return}
-  if(!l.consent){notify('Confirm this contact\\'s permission in WhatsApp Outreach first.');return}
+  if(!l.consent){notify('Confirm this contact's permission in WhatsApp Outreach first.');return}
   const suffix=message?'&text='+encodeURIComponent(message):'';
   const nativeUrl='whatsapp://send?phone='+phone+suffix;
   const webUrl='https://web.whatsapp.com/send?phone='+phone+suffix;
