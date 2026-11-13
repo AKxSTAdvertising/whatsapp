@@ -5,6 +5,7 @@
  const STATUS=['New','Contacted','Connected','Replied','Interested','Follow-up','Meeting booked','Won','Not interested'];
  const HEADERS=['Business Name','Niche','Founder','Phone','Email','Address','Website','Rating','Reviews','Website Status','Digital Score','Lead Priority'];
  let leads=[],page=1,activeId=null,toastTimer=null,pendingWhatsAppId=localStorage.getItem('unboxedthinking.pendingWhatsAppLead')||'',cloudReady=false,syncQueue=Promise.resolve(),synced=new Map(),syncPending=0,selected=new Set(),bulkBusy=false,activeView='new',messageTemplates={general:'Hi {{business_name}}, I came across your business and wanted to connect. We help businesses improve their online presence and generate more enquiries. Would you be open to a quick conversation?',followup:'Hi {{business_name}}, just following up on my earlier message. I wanted to check if you had a chance to review it. Happy to share more details if useful.'},previewType='general';
+ const DEFAULT_GENERAL_VARIANTS=["Hi {{business_name}}, I work with businesses in {{niche}} on making it easier for customers to find and contact them online. Is improving your online enquiries something you are looking at right now?","Hello {{business_name}} team, I wanted to introduce myself. I help businesses improve their website and online presence so interested customers can understand what they offer and get in touch. Would a short conversation be useful?","Hi {{business_name}}, quick question: are you currently happy with the number of enquiries you receive through your online channels? I work on digital growth for businesses in {{niche}} and would be glad to share a relevant idea.","Hello, I came across {{business_name}} and wanted to connect. My work focuses on helping businesses present their services clearly online and make it simpler for potential customers to reach them. Is it okay if I share a thought?","Hi {{business_name}}, I work with businesses like yours on their online visibility and customer enquiry journey. I had a couple of practical ideas that may be relevant to {{business_name}}. Would you be open to hearing one?","Hello {{business_name}} team, hope you are doing well. I help businesses strengthen their digital presence, from their website to the way enquiries come in. Are you the right person to speak with about this?","Hi {{business_name}}, I’m reaching out because I work in digital marketing and help businesses improve how they are discovered online. If this is something on your radar, I would be happy to introduce what we do.","Hello {{business_name}}, I wanted to ask whether you are currently working on improving your website or online lead generation. This is the area I work in, and I may be able to share something useful for your business.","Hi there, I work with {{niche}} businesses on their online presence and ways to make customer enquiries more straightforward. Would it be alright if I sent a brief introduction about how we help?","Hello {{business_name}} team, I’m getting in touch to introduce our digital growth work. We help businesses communicate their services online more clearly and create a smoother path for potential customers to enquire. Would a quick chat suit you?","Hi {{business_name}}, I had a question about your business goals. Is getting more relevant enquiries through your website or online channels a priority at the moment? That is the kind of work I help businesses with.","Hello, I’m reaching out from a digital marketing team that works with businesses on their online presence and enquiry generation. I thought it could be worth connecting with {{business_name}}. Would you be open to a brief introduction?","Hi {{business_name}}, I help businesses make better use of their website and digital channels to reach the right customers. I do not want to send a long pitch here; would you be comfortable with a short introduction?","Hello {{business_name}}, I wanted to connect and see whether you are exploring any improvements to your online visibility or customer enquiries. If so, I can share a few practical ways we approach this for businesses in {{niche}}.","Hi {{business_name}} team, my work is around helping businesses get found online and turn genuine interest into enquiries. If that is relevant to your current plans, may I share a little more about our approach?"];
  const $=id=>document.getElementById(id);
  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const val=(o,k)=>String(o?.[k]??'').trim();
@@ -99,26 +100,40 @@
   $('waSelectPage').indeterminate=count>0&&count<list.length;
   $('waEmpty').hidden=list.length!==0;
  }
+ function ensureGeneralVariants(){
+  let variants=Array.isArray(messageTemplates.generalVariants)?messageTemplates.generalVariants.slice(0,15):[];
+  if(!variants.length){variants=DEFAULT_GENERAL_VARIANTS.slice();if(messageTemplates.general)variants[0]=messageTemplates.general;}
+  while(variants.length<15)variants.push(DEFAULT_GENERAL_VARIANTS[variants.length]);
+  messageTemplates.generalVariants=variants;
+  messageTemplates.general=variants[0];
+  return variants;
+ }
  function renderMessageManager(){
   $('generalAudienceCount').textContent=leads.filter(isNew).length.toLocaleString('en-IN');
   $('followupAudienceCount').textContent=leads.filter(l=>!isNew(l)).length.toLocaleString('en-IN');
-  if(document.activeElement!==$('generalMessageTemplate'))$('generalMessageTemplate').value=messageTemplates.general;
+  const variants=ensureGeneralVariants(),grid=$('generalVariantsGrid');
+  if(document.activeElement?.dataset?.generalVariant===undefined){
+   grid.innerHTML=variants.map((v,i)=>'<article class="template-card variant-card"><div class="template-head"><div><span class="template-kicker">FIRST TOUCH / '+String(i+1).padStart(2,'0')+'</span><h3>Message '+(i+1)+'</h3><p>Natural, personalized introduction</p></div><span class="template-tag">VARIANT '+(i+1)+'</span></div><textarea data-general-variant="'+i+'" maxlength="3000" rows="5" aria-label="First message variant '+(i+1)+'">'+safe(v)+'</textarea><div class="template-foot"><span>{{business_name}} · {{niche}} · {{founder}}</span><span data-variant-length="'+i+'">'+v.length+' / 3000</span></div></article>').join('');
+  }
   if(document.activeElement!==$('followupMessageTemplate'))$('followupMessageTemplate').value=messageTemplates.followup;
-  $('generalTemplateLength').textContent=$('generalMessageTemplate').value.length+' / 3000';
   $('followupTemplateLength').textContent=$('followupMessageTemplate').value.length+' / 3000';
   renderMessagePreview();
  }
  function renderMessagePreview(){
   const sample={'Business Name':'Sample Business','Niche':'Retail','Founder':'Alex'};
-  const general=$('generalMessageTemplate').value,followup=$('followupMessageTemplate').value;
+  const variants=ensureGeneralVariants();
+  const general=variants[Number($('generalPreviewVariant')?.value||0)]||variants[0],followup=$('followupMessageTemplate').value;
   $('messagePreview').textContent=fillTemplate(previewType==='general'?general:followup,sample)||'Write a message above to see the preview.';
   $('previewGeneral').classList.toggle('btn-primary',previewType==='general');
   $('previewFollowup').classList.toggle('btn-primary',previewType==='followup');
  }
  async function saveMessageTemplates(){
   if(!cloudReady){notify('Sign in before saving message templates.');return}
-  const next={general:$('generalMessageTemplate').value.trim(),followup:$('followupMessageTemplate').value.trim()};
-  if(!next.general&&!next.followup){notify('Write at least one message before saving.');return}
+  const variants=Array.from(document.querySelectorAll('[data-general-variant]')).map(el=>el.value.trim());
+  if(variants.length!==15){notify('All 15 first-message variants must be available.');return}
+  if(variants.some(v=>!v)){notify('Please complete all 15 first-message variants before saving.');return}
+  const next={general:variants[0],generalVariants:variants,followup:$('followupMessageTemplate').value.trim()};
+  if(!next.followup){notify('Please keep a shared follow-up message.');return}
   const btn=$('saveMessageTemplates');btn.disabled=true;btn.textContent='Saving…';
   try{await window.UnboxedCloud.saveSettings(next);messageTemplates=next;renderMessageManager();notify('Shared message templates saved to your private cloud account.')}
   catch(e){notify('Could not save message templates: '+e.message)}
@@ -202,7 +217,15 @@
    return map[key.toLowerCase()]||'';
   }).trim();
  }
- function currentDraft(l){return fillTemplate(isNew(l)?messageTemplates.general:messageTemplates.followup,l)}
+ function currentDraft(l){
+  if(!isNew(l))return fillTemplate(messageTemplates.followup,l);
+  if(l.firstMessageDraft)return l.firstMessageDraft;
+  const variants=ensureGeneralVariants(),index=Math.floor(Math.random()*variants.length);
+  l.firstMessageVariant=index+1;
+  l.firstMessageDraft=fillTemplate(variants[index],l);
+  l.updated=stamp();save();
+  return l.firstMessageDraft;
+ }
  function openLead(id){
   const l=leads.find(x=>x.id===id);if(!l)return;activeId=l.id;
   $('detailTitle').textContent=l['Business Name']||'Business';
@@ -285,7 +308,9 @@
   $('waSelectPage').addEventListener('change',e=>{for(const l of whatsappFiltered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}renderWhatsAppPage()});
   $('waRows').addEventListener('change',e=>{if(!e.target.matches('[data-wa-select]'))return;if(e.target.checked)selected.add(e.target.dataset.waSelect);else selected.delete(e.target.dataset.waSelect);renderWhatsAppPage()});
   $('saveMessageTemplates').addEventListener('click',saveMessageTemplates);
-  for(const id of ['generalMessageTemplate','followupMessageTemplate'])$(id).addEventListener('input',()=>{$(id==='generalMessageTemplate'?'generalTemplateLength':'followupTemplateLength').textContent=$(id).value.length+' / 3000';renderMessagePreview()});
+  $('followupMessageTemplate').addEventListener('input',()=>{$('followupTemplateLength').textContent=$('followupMessageTemplate').value.length+' / 3000';renderMessagePreview()});
+  $('generalVariantsGrid').addEventListener('input',e=>{const field=e.target.closest('[data-general-variant]');if(!field)return;const counter=$('[data-variant-length="'+field.dataset.generalVariant+'"]');if(counter)counter.textContent=field.value.length+' / 3000';});
+  $('generalPreviewVariant').addEventListener('change',renderMessagePreview);
   $('previewGeneral').addEventListener('click',()=>{previewType='general';renderMessagePreview()});
   $('previewFollowup').addEventListener('click',()=>{previewType='followup';renderMessagePreview()});
   for(const id of ['waSearch','waStatusFilter','waPermissionFilter'])$(id).addEventListener(id==='waSearch'?'input':'change',renderWhatsAppPage);
@@ -314,6 +339,7 @@
     leads=data.map(normalize);
     const savedTemplates=await window.UnboxedCloud.loadSettings();
     if(savedTemplates&&typeof savedTemplates==='object')messageTemplates={...messageTemplates,...savedTemplates};
+    ensureGeneralVariants();
     selected.clear();cloudReady=true;markSynced();page=1;render();renderMessageManager();
     document.body.classList.remove('auth-locked');$('authGate').hidden=true;
     $('loginError').textContent='';
