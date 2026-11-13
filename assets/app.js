@@ -369,6 +369,30 @@
  function openImportChooser(){ $('importBackdrop').hidden=false; }
  function closeImportChooser(){ $('importBackdrop').hidden=true; }
  async function readImportFile(e,isJSON){const f=e.target.files?.[0];e.target.value='';if(!f)return;closeImportChooser();if(f.size>10*1024*1024){notify('File is too large (limit: 10 MB).');return}try{const t=await f.text();if(isJSON)await handleJSON(t);else importCSV(t)}catch(err){notify('Import failed: '+err.message)}}
+
+ async function refreshModule(button){
+  if(!cloudReady){notify('Sign in before refreshing this module.');return}
+  const module=button.dataset.moduleRefresh,original=button.innerHTML;
+  button.disabled=true;button.classList.add('is-refreshing');
+  button.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/></svg><span>Refreshing…</span>';
+  try{
+   await syncQueue;
+   const fresh=await window.UnboxedCloud.load();
+   leads=fresh.map(normalize);
+   selected=new Set([...selected].filter(id=>leads.some(l=>l.id===id)));
+   if(module==='messages'){
+    const saved=await window.UnboxedCloud.loadSettings();
+    if(saved&&typeof saved==='object')messageTemplates={...messageTemplates,...saved};
+    ensureGeneralVariants();
+   }
+   markSynced();page=1;render();
+   if(module==='whatsapp')renderWhatsAppPage();
+   if(module==='messages')renderMessageManager();
+   notify(module==='messages'?'Message Manager refreshed from cloud.':module==='followups'?'Follow-ups refreshed from cloud.':module==='settings'?'Data module refreshed from cloud.':module==='overview'?'Overview refreshed from cloud.':module==='whatsapp'?'WhatsApp module refreshed from cloud.':'Lead module refreshed from cloud.');
+  }catch(error){notify('Refresh failed: '+error.message);console.error('Module refresh failed',module,error)}
+  finally{button.disabled=false;button.classList.remove('is-refreshing');button.innerHTML=original}
+ }
+
  function bind(){for(const id of ['importTop','importEmpty','importSettings'])$(id).addEventListener('click',openImportChooser);
   $('uploadCsvBtn').addEventListener('click',()=>$('fileInput').click());
   $('restoreJsonBtn').addEventListener('click',()=>$('jsonInput').click());
@@ -416,6 +440,7 @@
   $('openFirst').addEventListener('click',()=>{const l=filtered()[0];if(l)openLead(l.id);else notify('Import leads first.')});
   $('mobileMenu').addEventListener('click',()=>$('mobileMenu').closest('.app-shell').querySelector('.sidebar').classList.toggle('is-open'));
   document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{activeView=a.dataset.nav;updateNavigation();document.querySelector('.sidebar').classList.remove('is-open')}));
+  document.querySelectorAll('[data-module-refresh]').forEach(button=>button.addEventListener('click',()=>refreshModule(button)));
  }
   async function enterCloud(){
   if(!window.UnboxedCloud||window.UnboxedCloud.error){$('loginError').textContent=window.UnboxedCloud?.error||'Could not load Supabase library.';return}
