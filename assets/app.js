@@ -413,7 +413,7 @@
   render();if($('waRows'))renderWhatsAppPage();
   if(wasConnected){activeView='contacted';updateNavigation();location.hash='leads'}
   if(status==='Interested'){activeView='interested';updateNavigation();location.hash='leads'}
-  if(status==='Contacted'){activeView='messageSent';updateNavigation();location.hash='leads'}
+  // Keep the current module open; the lead moves out of New Leads by status filtering.
   if(status)notify('Lead status updated: '+status+'.');
  }
  function openWhatsApp(){const l=persistModal();if(l)directWhatsApp(l,activeMessage(l))}
@@ -437,7 +437,7 @@
   if(kind==='sent'){l.status='Contacted';l.sentAt=l.sentAt||stamp()}
   if(kind==='followup'){if(!l.followup||!l.followupTime){notify('Set follow-up date and time before marking it.');openFollowupSchedule(l.status||'New');return}l.status='Follow-up';l.followupSentAt=stamp()}
   l.updated=stamp();save();render();closeLead();
-  if(kind==='sent'){activeView='messageSent';updateNavigation();location.hash='leads'}
+  // Keep the current module open; Message Sent is updated by status filtering.
   notify(kind==='sent'?'Moved to Message Sent module.':'Follow-up recorded manually.')
  }
  function updateNavigation(){
