@@ -72,7 +72,7 @@
   }
   return -1
  }
- function normalize(o){const d={};for(const k of HEADERS)d[k]=val(o,k);return {...d,id:String(o.id||uid()),status:STATUS.includes(o.status)?o.status:'New',followup:String(o.followup||''),notes:String(o.notes||''),consent:o.consent===true,updated:String(o.updated||stamp()),firstDraft:String(o.firstDraft||''),followupDraft:String(o.followupDraft||''),sentAt:String(o.sentAt||''),repliedAt:String(o.repliedAt||''),followupSentAt:String(o.followupSentAt||'')}}
+ function normalize(o){const d={};for(const k of HEADERS)d[k]=val(o,k);return {...d,id:String(o.id||uid()),status:STATUS.includes(o.status)?o.status:'New',followup:String(o.followup||''),followupTime:String(o.followupTime||''),notes:String(o.notes||''),consent:o.consent===true,updated:String(o.updated||stamp()),firstDraft:String(o.firstDraft||''),followupDraft:String(o.followupDraft||''),sentAt:String(o.sentAt||''),repliedAt:String(o.repliedAt||''),followupSentAt:String(o.followupSentAt||'')}}
  function importCSV(text){const rows=parseCSV(text);if(rows.length<2)throw new Error('CSV does not contain any lead rows.');
   const header=rows.shift().map(h=>String(h||'').replace(/^\uFEFF/,'').trim().toLowerCase().replace(/[^a-z0-9]/g,''));
   const phoneIndex=csvHeaderIndex(header,'Phone');if(phoneIndex<0)throw new Error('Phone column not found. Use Phone, Mobile, Mobile Number or Contact Number.');
@@ -100,8 +100,8 @@
   notify('CSV import template downloaded. Fill Business Name and Phone, then import it.');
  }
  function exportCSV(){if(!leads.length){notify('Import leads first.');return}
-  const cols=[...HEADERS,'Status','Follow-up Date','Notes','Contact Permission','First Draft','Followup Draft','Sent At','Replied At','Followup Sent At','Updated'];
-  const out=[cols.map(csvCell).join(',')];for(const l of leads){out.push([...HEADERS.map(k=>l[k]),l.status,l.followup,l.notes,l.consent?'Yes':'No',l.firstDraft,l.followupDraft,l.sentAt,l.repliedAt,l.followupSentAt,l.updated].map(csvCell).join(','))}
+  const cols=[...HEADERS,'Status','Follow-up Date','Follow-up Time','Notes','Contact Permission','First Draft','Followup Draft','Sent At','Replied At','Followup Sent At','Updated'];
+  const out=[cols.map(csvCell).join(',')];for(const l of leads){out.push([...HEADERS.map(k=>l[k]),l.status,l.followup,l.followupTime,l.notes,l.consent?'Yes':'No',l.firstDraft,l.followupDraft,l.sentAt,l.repliedAt,l.followupSentAt,l.updated].map(csvCell).join(','))}
   download('unboxedthinking-leads-'+day()+'.csv',new Blob(['\uFEFF'+out.join('\r\n')],{type:'text/csv;charset=utf-8'}));notify('CSV exported.')}
  function backup(){if(!leads.length){notify('No leads to back up.');return}download('unboxedthinking-full-backup-'+day()+'.json',new Blob([JSON.stringify({version:1,exportedAt:stamp(),leads},null,2)],{type:'application/json'}));notify('Full backup downloaded.')}
  function filtered(){const q=$('search').value.trim().toLowerCase(),st=$('statusFilter').value,pr=$('priorityFilter').value,web=$('websiteFilter').value,sort=$('sort').value;
@@ -125,7 +125,7 @@
   $('pageSummary').textContent=list.length?((page-1)*per+1)+'–'+Math.min(page*per,list.length)+' of '+list.length+' leads':'0 leads';$('pageNumber').textContent=page+' / '+pages;$('prevPage').disabled=page===1;$('nextPage').disabled=page===pages;
   const followupLeads=leads.filter(l=>l.status==='Follow-up'||(l.followup&&l.followup<=today&&!['Won','Not interested'].includes(l.status)));
   followupLeads.sort((a,b)=>(a.followup||'9999').localeCompare(b.followup||'9999')||val(b,'updated').localeCompare(val(a,'updated')));
-  $('dueList').innerHTML=followupLeads.length?followupLeads.map(l=>'<div class="due-item"><div><strong>'+safe(l['Business Name']||'Business')+'</strong><small>'+safe(l.status||'Follow-up')+' · '+safe(l.followup||'No date set')+' · '+safe(l.Niche||'Lead')+'</small></div><button class="mini-btn" data-open="'+safe(l.id)+'">Manage / Move</button></div>').join(''):'<p class="due-none">No follow-up leads yet. Mark a lead as Follow-up or set its next follow-up date.</p>';
+  $('dueList').innerHTML=followupLeads.length?followupLeads.map(l=>'<div class="due-item"><div><strong>'+safe(l['Business Name']||'Business')+'</strong><small>'+safe(l.status||'Follow-up')+' · '+safe(l.followup||'No date set')+(l.followupTime?' at '+safe(l.followupTime):'')+' · '+safe(l.Niche||'Lead')+'</small></div><button class="mini-btn" data-open="'+safe(l.id)+'">Manage / Move</button></div>').join(''):'<p class="due-none">No follow-up leads yet. Mark a lead as Follow-up or set its next follow-up date.</p>';
  }
  function whatsappFiltered(){
   const q=$('waSearch').value.trim().toLowerCase(),st=$('waStatusFilter').value,permission=$('waPermissionFilter').value;
@@ -284,7 +284,7 @@
    '<div><span>First sent</span><strong>'+safe(l.sentAt?new Date(l.sentAt).toLocaleString():'Not marked')+'</strong></div>'+
    '<div><span>Reply received</span><strong>'+safe(l.repliedAt?new Date(l.repliedAt).toLocaleString():'Not marked')+'</strong></div></div>'+
    '<div class="detail-fields"><div class="field"><label for="detailStatus">Move to section / Lead status</label><select id="detailStatus">'+STATUS.map(st=>'<option '+(l.status===st?'selected':'')+'>'+safe(st)+'</option>').join('')+'</select></div>'+
-   '<div class="field"><label for="detailDate">Next follow-up</label><input type="date" id="detailDate" value="'+safe(l.followup)+'"></div>'+
+   '<div class="field"><label for="detailDate">Follow-up date</label><input type="date" id="detailDate" value="'+safe(l.followup)+'"></div>'+\n    '<div class="field" id="followupTimeField" '+(l.status==='Follow-up'?'':'hidden')+'><label for="detailTime">Follow-up time</label><input type="time" id="detailTime" value="'+safe(l.followupTime)+'" '+(l.status==='Follow-up'?'required':'')+'></div>'+
    '<div class="field wide"><label for="detailNotes">Notes</label><textarea id="detailNotes" maxlength="10000" placeholder="Conversation notes...">'+safe(l.notes)+'</textarea></div>'+
    '<div class="field wide"><label class="consent"><input type="checkbox" id="detailConsent" '+(l.consent?'checked':'')+'><span>I confirm this business has permitted WhatsApp outreach; I will respect opt-outs.</span></label></div></div>'+
    '<div class="message-box"><p>'+(isNew(l)?'GENERAL MESSAGE':'FOLLOW-UP MESSAGE')+' · SHARED TEMPLATE</p><div class="shared-message-preview">'+safe(currentDraft(l)||'No message saved yet. Open Message Manager to add one.')+'</div><div class="draft-actions"><span>Managed centrally in Message Manager</span><button class="btn btn-outline btn-small" id="goMessageManager">Edit shared message →</button></div></div>'+
@@ -297,7 +297,7 @@
  function closeLead(){activeId=null;$('detailBackdrop').hidden=true;document.body.style.overflow=''}
  function persistModal(){
   const l=leads.find(x=>x.id===activeId);if(!l)return null;
-  l.status=$('detailStatus').value;l.followup=$('detailDate').value;l.notes=$('detailNotes').value;
+  const nextStatus=$('detailStatus').value,nextDate=$('detailDate').value,nextTime=$('detailTime').value;\n   if(nextStatus==='Follow-up'&&(!nextDate||!nextTime)){notify('Follow-up ke liye date aur time dono bharna mandatory hai.');$('followupTimeField').hidden=false;$('detailDate').required=true;$('detailTime').required=true;(!nextDate?$('detailDate'):$('detailTime')).focus();return null}\n   l.status=nextStatus;l.followup=nextDate;l.followupTime=nextTime;l.notes=$('detailNotes').value;
   l.consent=$('detailConsent').checked;
   l.updated=stamp();save();render();return l
  }
@@ -440,7 +440,7 @@
   $('prevPage').addEventListener('click',()=>{page--;render()});$('nextPage').addEventListener('click',()=>{page++;render()});
   document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open);const wa=e.target.closest('[data-whatsapp]');if(wa)quickWhatsApp(wa.dataset.whatsapp)});
   document.addEventListener('change',e=>{const connect=e.target.closest('[data-connect-status]');if(connect&&connect.value==='Connected')markConnected(connect.dataset.connectStatus)});
-  $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});
+  $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});\n   $('detailContent').addEventListener('change',e=>{if(e.target.id==='detailStatus'){const show=e.target.value==='Follow-up';$('followupTimeField').hidden=!show;$('detailDate').required=show;$('detailTime').required=show;if(show)$('detailDate').focus()}});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('singleBackdrop').hidden)closeSingle();else if(!$('detailBackdrop').hidden)closeLead()}});
   $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){persistModal();notify('Changes queued for Supabase sync.')}if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){$(isNew(l)?'detailPitch':'detailFollowupPitch').select();notify('Select and copy your message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='markReplied')markAction('replied');if(id==='markFollowup')markAction('followup');if(id==='goMessageManager'){closeLead();activeView='messages';updateNavigation()}});
   $('openFirst').addEventListener('click',()=>{const l=filtered()[0];if(l)openLead(l.id);else notify('Import leads first.')});
