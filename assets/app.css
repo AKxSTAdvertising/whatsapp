@@ -125,3 +125,5 @@ body.auth-locked .app-shell{display:none}
 .panel-head .module-actions{justify-content:flex-end}
 .settings .module-refresh{margin-top:13px}
 @media(max-width:575px){.module-actions{width:100%}.panel-head .module-actions{width:auto}.module-refresh{min-height:34px}}
+
+.nav-link>.nav-count{width:auto;min-width:20px;font-size:10px;line-height:1.2;text-align:center;padding:3px 7px}
