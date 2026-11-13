@@ -105,3 +105,10 @@ body.auth-locked .app-shell{display:none}
 /* Prompt to update lead status when returning from WhatsApp */
 .whatsapp-return-backdrop{z-index:150}.whatsapp-return-modal{max-width:480px}.whatsapp-return-lead{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px 15px;margin:12px 0 16px;background:#f5f6fa;border:1px solid #e8e9ef;border-radius:10px}.whatsapp-return-lead strong{font-size:14px;color:var(--ink)}.whatsapp-return-lead span{font-size:12px;color:var(--muted)}.whatsapp-return-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}.whatsapp-return-choices .btn{min-height:43px}.whatsapp-return-skip{display:block;margin:14px auto 0;border:0;background:none;color:var(--muted);font-size:12px;font-weight:650;cursor:pointer}
 @media(max-width:480px){.whatsapp-return-modal{width:calc(100% - 24px);padding:20px}.whatsapp-return-choices{grid-template-columns:1fr}}
+
+/* Overview lead register is visible only on the read-only Overview page. */
+.app-shell:not([data-page="overview"]) .overview-all-leads{display:none}
+.overview-all-leads{margin:24px 0 30px}
+.overview-all-leads .table-panel{overflow:hidden}
+.overview-all-leads .table-scroller{max-height:65vh;overflow:auto}
+.overview-all-leads table{min-width:620px}
