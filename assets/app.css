@@ -89,3 +89,6 @@ body.auth-locked .app-shell{display:none}
 
 /* Hide the Message Manager outside its own dedicated page. */
 .app-shell[data-page="overview"] #messageCenter,.app-shell[data-page="leads"] #messageCenter,.app-shell[data-page="followups"] #messageCenter,.app-shell[data-page="settings"] #messageCenter,.app-shell[data-page="whatsapp"] #messageCenter{display:none}
+
+/* Inline post-WhatsApp connection status control */
+.connect-select{max-width:145px;min-height:31px;padding:6px 8px;border:1px solid #b8e5cb;border-radius:7px;background:#f3fbf6;color:#19764b;font-size:11px;font-weight:750;}
