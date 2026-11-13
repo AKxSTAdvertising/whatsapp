@@ -123,7 +123,7 @@
   updateSelectionControls(list,slice);
   $('emptyState').hidden=list.length!==0;$('emptyMessage').textContent=leads.length?'No matching leads. Change the filters to see more.':'Import your cleaned CSV to start your outreach workspace.';$('importEmpty').hidden=leads.length>0;
   $('pageSummary').textContent=list.length?((page-1)*per+1)+'–'+Math.min(page*per,list.length)+' of '+list.length+' leads':'0 leads';$('pageNumber').textContent=page+' / '+pages;$('prevPage').disabled=page===1;$('nextPage').disabled=page===pages;
-  const followupLeads=leads.filter(l=>l.status==='Follow-up'&&l.followup&&l.followupTime);
+  const followupLeads=leads.filter(l=>l.status==='Follow-up');
   followupLeads.sort((a,b)=>(a.followup||'9999').localeCompare(b.followup||'9999')||val(b,'updated').localeCompare(val(a,'updated')));
   $('dueList').innerHTML=followupLeads.length?followupLeads.map(l=>'<div class="due-item"><div><strong>'+safe(l['Business Name']||'Business')+'</strong><small>'+safe(l.status||'Follow-up')+' · '+safe(l.followup||'No date set')+(l.followupTime?' at '+safe(l.followupTime):'')+' · '+safe(l.Niche||'Lead')+'</small></div><button class="mini-btn" data-open="'+safe(l.id)+'">Manage / Move</button></div>').join(''):'<p class="due-none">No follow-up leads yet. Mark a lead as Follow-up or set its next follow-up date.</p>';
  }
