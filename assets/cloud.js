@@ -43,7 +43,7 @@
   const user=await requireUser(),c=await getClient();
   for(let i=0;i<changed.length;i+=100){
    const slice=changed.slice(i,i+100);
-   const rows=slice.map(x=>({user_id:user.id,dedup_key:String(x.Phone||'').replace(/\\D/g,'')+'|'+String(x['Business Name']||'').toLowerCase().replace(/\\s+/g,' ').trim(),payload:x,updated_at:new Date().toISOString()}));
+   const rows=slice.map(x=>({user_id:user.id,dedup_key:String(x.Phone||'').replace(/\D/g,'')+'|'+String(x['Business Name']||'').toLowerCase().replace(/\s+/g,' ').trim(),payload:x,updated_at:new Date().toISOString()}));
    const {error}=await c.from(table).upsert(rows,{onConflict:'user_id,dedup_key'});
    if(error)throw error;
   }
@@ -59,33 +59,46 @@
   const {error}=await c.from(table).upsert(row,{onConflict:'user_id,dedup_key'});
   if(error)throw error;
  }
- const payloadKey=x=>String(x?.Phone||'').replace(/\\D/g,'')+'|'+String(x?.['Business Name']||'').toLowerCase().replace(/\\s+/g,' ').trim();
+ const payloadKey=x=>String(x?.Phone||'').replace(/\D/g,'')+'|'+String(x?.['Business Name']||'').toLowerCase().replace(/\s+/g,' ').trim();
  async function removeKeys(keys){
   if(!Array.isArray(keys)||!keys.length)return 0;
   const user=await requireUser(),c=await getClient(),wanted=new Set(keys.map(String)),storedKeys=[];
-  // Match against both the stored database key and the lead payload. This also
-  // handles older records whose dedup_key format differs from the current UI.
   for(let from=0;;from+=500){
    const {data,error}=await c.from(table).select('dedup_key,payload').eq('user_id',user.id).neq('dedup_key','__crm_settings__').order('created_at',{ascending:true}).range(from,from+499);
    if(error)throw error;
    for(const row of data||[]){
-    if(wanted.has(String(row.dedup_key))||wanted.has(payloadKey(row.payload)))storedKeys.push(String(row.dedup_key));
+    const p=payloadKey(row.payload);
+    if(wanted.has(String(row.dedup_key))||wanted.has(p))storedKeys.push(String(row.dedup_key));
    }
    if(!data||data.length<500)break;
    if(from>=50000)throw new Error('Too many leads to process in one delete operation.');
   }
-  let removed=0;
-  for(let i=0;i<storedKeys.length;i+=80){
-   const {data,error}=await c.from(table).delete().eq('user_id',user.id).in('dedup_key',storedKeys.slice(i,i+80)).select('dedup_key');
-   if(error)throw error;removed+=(data||[]).length;
+  const unique=[...new Set(storedKeys)];
+  for(let i=0;i<unique.length;i+=80){
+   const {error}=await c.from(table).delete().eq('user_id',user.id).in('dedup_key',unique.slice(i,i+80));
+   if(error)throw error;
   }
-  return removed;
+  const remaining=await load();
+  const stillThere=remaining.filter(x=>wanted.has(payloadKey(x))).length;
+  if(stillThere)throw new Error(stillThere+' selected leads are still in Supabase. Check DELETE permissions/RLS policy.');
+  return unique.length;
  }
  async function clear(){
-  const user=await requireUser(),c=await getClient();
-  const {data,error}=await c.from(table).delete().eq('user_id',user.id).neq('dedup_key','__crm_settings__').select('dedup_key');
-  if(error)throw error;
-  return (data||[]).length;
+  const user=await requireUser(),c=await getClient(),keys=[];
+  for(let from=0;;from+=500){
+   const {data,error}=await c.from(table).select('dedup_key').eq('user_id',user.id).neq('dedup_key','__crm_settings__').order('created_at',{ascending:true}).range(from,from+499);
+   if(error)throw error;
+   keys.push(...(data||[]).map(x=>String(x.dedup_key)));
+   if(!data||data.length<500)break;
+   if(from>=50000)throw new Error('Too many leads to clear in one operation.');
+  }
+  for(let i=0;i<keys.length;i+=80){
+   const {error}=await c.from(table).delete().eq('user_id',user.id).in('dedup_key',keys.slice(i,i+80));
+   if(error)throw error;
+  }
+  const remaining=await load();
+  if(remaining.length)throw new Error(remaining.length+' leads remain. Check Supabase DELETE policy for this user.');
+  return keys.length;
  }
  window.UnboxedCloud={
   ready:()=>clientReady,
