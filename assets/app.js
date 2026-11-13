@@ -477,10 +477,8 @@
   }catch(e){cloudReady=false;document.body.classList.add('auth-locked');$('authGate').hidden=false;$('loginError').textContent='Unable to load private leads: '+e.message;}
  }
  async function bootstrap(){
-  // Bind the login form before waiting for Supabase so a failed CDN/client init
-  // never leaves the Sign in button silently inert.
-  bind();updateNavigation();render();
-  // Attach the submit handler immediately; never make login depend on the CDN promise.
+  // Attach authentication first. A later CRM UI initialization error must never
+  // prevent the login form from receiving its submit handler.
   $('loginForm').addEventListener('submit',async e=>{
    e.preventDefault();const b=$('loginButton');b.disabled=true;b.textContent='Signing in…';$('loginError').textContent='';
    try{
@@ -493,6 +491,10 @@
    }catch(err){$('loginError').textContent=err.message||'Sign-in failed';console.error('Login failed:',err)}
    finally{b.disabled=false;b.textContent='Sign in securely →'}
   });
+  try{bind();updateNavigation();render()}catch(uiError){
+   $('loginError').textContent='CRM interface setup failed: '+(uiError?.message||String(uiError));
+   console.error('CRM interface initialization failed:',uiError);
+  }
   try{await window.UnboxedCloud?.ready?.()}catch(e){
    $('loginError').textContent='Supabase connection setup failed: '+(e?.message||String(e));
    console.error('Supabase startup failed:',e);
