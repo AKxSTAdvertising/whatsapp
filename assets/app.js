@@ -305,11 +305,37 @@
   const nativeUrl='whatsapp://send?phone='+phone+suffix;
   const webUrl='https://web.whatsapp.com/send?phone='+phone+suffix;
   const fallback=$('waWebFallback');if(fallback){fallback.href=webUrl;fallback.hidden=false}
-  pendingWhatsAppId=l.id;try{localStorage.setItem('unboxedthinking.pendingWhatsAppLead',l.id)}catch(e){}
+  pendingWhatsAppId=l.id;try{localStorage.setItem('unboxedthinking.pendingWhatsAppLead',l.id);sessionStorage.removeItem('unboxedthinking.whatsappAway')}catch(e){}
   render();if($('waRows'))renderWhatsAppPage();
   // Opens installed app directly, subject to browser/OS protocol approval.
   window.location.href=nativeUrl;
   notify('Opening WhatsApp app. If unavailable, use the direct Web link in Manage.')
+ }
+ function clearWhatsAppReturn(){pendingWhatsAppId='';try{localStorage.removeItem('unboxedthinking.pendingWhatsAppLead');sessionStorage.removeItem('unboxedthinking.whatsappAway')}catch(e){}}
+ function showWhatsAppReturn(){
+  if(!pendingWhatsAppId||!cloudReady||$('whatsappReturnBackdrop').dataset.shown==='1')return;
+  let away=false;try{away=sessionStorage.getItem('unboxedthinking.whatsappAway')==='1'}catch(e){}
+  if(!away)return;
+  const l=leads.find(x=>x.id===pendingWhatsAppId);
+  if(!l){clearWhatsAppReturn();return}
+  $('whatsappReturnName').textContent=l['Business Name']||'Unnamed business';
+  $('whatsappReturnPhone').textContent=l.Phone||'';
+  $('whatsappReturnBackdrop').dataset.shown='1';$('whatsappReturnBackdrop').hidden=false;
+ }
+ function finishWhatsAppReturn(status){
+  const l=leads.find(x=>x.id===pendingWhatsAppId);
+  if(l&&status){
+   l.status=status;l.updated=stamp();
+   if(status==='Contacted'||status==='Connected')l.sentAt=l.sentAt||stamp();
+   if(status==='Replied')l.repliedAt=stamp();
+   if(status==='Follow-up')l.followupSentAt=stamp();
+   save();
+  }
+  const wasConnected=status==='Connected';
+  clearWhatsAppReturn();$('whatsappReturnBackdrop').hidden=true;$('whatsappReturnBackdrop').dataset.shown='';
+  render();if($('waRows'))renderWhatsAppPage();
+  if(wasConnected){activeView='contacted';updateNavigation();location.hash='leads'}
+  if(status)notify('Lead status updated: '+status+'.');
  }
  function openWhatsApp(){const l=persistModal();if(l)directWhatsApp(l,activeMessage(l))}
  function quickWhatsApp(id){const l=leads.find(x=>x.id===id);if(l)directWhatsApp(l,currentDraft(l)||'')}
@@ -348,6 +374,12 @@
   $('closeImportChooser').addEventListener('click',closeImportChooser);
   $('importBackdrop').addEventListener('click',e=>{if(e.target===$('importBackdrop'))closeImportChooser()});
   $('fileInput').addEventListener('change',e=>readImportFile(e,false));
+  $('whatsappReturnChoices').addEventListener('click',e=>{const b=e.target.closest('[data-return-status]');if(b)finishWhatsAppReturn(b.dataset.returnStatus)});
+  $('whatsappReturnSkip').addEventListener('click',()=>finishWhatsAppReturn(''));
+  $('whatsappReturnBackdrop').addEventListener('click',e=>{if(e.target===$('whatsappReturnBackdrop'))finishWhatsAppReturn('')});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){if(pendingWhatsAppId)try{sessionStorage.setItem('unboxedthinking.whatsappAway','1')}catch(e){}}else showWhatsAppReturn()});
+  window.addEventListener('focus',showWhatsAppReturn);
+  window.addEventListener('pageshow',showWhatsAppReturn);
   $('jsonInput').addEventListener('change',e=>readImportFile(e,true));
   $('addSingleTop').addEventListener('click',openSingle);
   $('closeSingle').addEventListener('click',closeSingle);
@@ -392,6 +424,7 @@
     const savedTemplates=await window.UnboxedCloud.loadSettings();
     if(savedTemplates&&typeof savedTemplates==='object')messageTemplates={...messageTemplates,...savedTemplates};
     ensureGeneralVariants();
+    $('whatsappReturnBackdrop').dataset.shown='';
     selected.clear();cloudReady=true;markSynced();page=1;render();renderMessageManager();
     document.body.classList.remove('auth-locked');$('authGate').hidden=true;
     $('loginError').textContent='';
