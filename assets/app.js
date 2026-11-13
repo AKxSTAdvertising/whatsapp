@@ -480,15 +480,23 @@
   // Bind the login form before waiting for Supabase so a failed CDN/client init
   // never leaves the Sign in button silently inert.
   bind();updateNavigation();render();
+  // Attach the submit handler immediately; never make login depend on the CDN promise.
+  $('loginForm').addEventListener('submit',async e=>{
+   e.preventDefault();const b=$('loginButton');b.disabled=true;b.textContent='Signing in…';$('loginError').textContent='';
+   try{
+    if(!window.UnboxedCloud||typeof window.UnboxedCloud.signIn!=='function'){
+     await window.UnboxedCloud?.ready?.();
+    }
+    if(!window.UnboxedCloud||typeof window.UnboxedCloud.signIn!=='function')throw new Error(window.UnboxedCloud?.error||'Supabase login service is unavailable. Check your connection and refresh.');
+    await window.UnboxedCloud.signIn($('loginEmail').value.trim(),$('loginPassword').value);
+    $('loginPassword').value='';await enterCloud();
+   }catch(err){$('loginError').textContent=err.message||'Sign-in failed';console.error('Login failed:',err)}
+   finally{b.disabled=false;b.textContent='Sign in securely →'}
+  });
   try{await window.UnboxedCloud?.ready?.()}catch(e){
    $('loginError').textContent='Supabase connection setup failed: '+(e?.message||String(e));
    console.error('Supabase startup failed:',e);
   }
-  $('loginForm').addEventListener('submit',async e=>{
-   e.preventDefault();const b=$('loginButton');b.disabled=true;b.textContent='Signing in…';$('loginError').textContent='';
-   try{if(!window.UnboxedCloud||typeof window.UnboxedCloud.signIn!=='function')throw new Error(window.UnboxedCloud?.error||'Supabase login service is still loading. Refresh the page and try again.');await window.UnboxedCloud.signIn($('loginEmail').value.trim(),$('loginPassword').value);$('loginPassword').value='';await enterCloud()}
-   catch(err){$('loginError').textContent=err.message||'Sign-in failed';}finally{b.disabled=false;b.textContent='Sign in securely →'}
-  });
   $('logoutBtn').addEventListener('click',async()=>{
    if(syncPending>0){notify('Finish syncing your leads before signing out.');return}
    try{await window.UnboxedCloud.signOut();leads=[];selected.clear();synced.clear();cloudReady=false;render();document.body.classList.add('auth-locked');$('authGate').hidden=false;notify('Signed out.')}catch(e){notify('Sign out failed: '+e.message)}
