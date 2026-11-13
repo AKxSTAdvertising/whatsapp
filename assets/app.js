@@ -284,7 +284,8 @@
    '<div><span>First sent</span><strong>'+safe(l.sentAt?new Date(l.sentAt).toLocaleString():'Not marked')+'</strong></div>'+
    '<div><span>Reply received</span><strong>'+safe(l.repliedAt?new Date(l.repliedAt).toLocaleString():'Not marked')+'</strong></div></div>'+
    '<div class="detail-fields"><div class="field"><label for="detailStatus">Move to section / Lead status</label><select id="detailStatus">'+STATUS.map(st=>'<option '+(l.status===st?'selected':'')+'>'+safe(st)+'</option>').join('')+'</select></div>'+
-   '<div class="field"><label for="detailDate">Follow-up date</label><input type="date" id="detailDate" value="'+safe(l.followup)+'" '+(l.status==='Follow-up'?'required':'')+'></div>'+\n    '<div class="field" id="followupTimeField" '+(l.status==='Follow-up'?'':'hidden')+'><label for="detailTime">Follow-up time</label><input type="time" id="detailTime" value="'+safe(l.followupTime)+'" '+(l.status==='Follow-up'?'required':'')+'></div>'+
+   '<div class="field"><label for="detailDate">Follow-up date</label><input type="date" id="detailDate" value="'+safe(l.followup)+'" '+(l.status==='Follow-up'?'required':'')+' ></div>'+
+    '<div class="field" id="followupTimeField" '+(l.status==='Follow-up'?'':'hidden')+'><label for="detailTime">Follow-up time</label><input type="time" id="detailTime" value="'+safe(l.followupTime)+'" '+(l.status==='Follow-up'?'required':'')+'></div>'+
    '<div class="field wide"><label for="detailNotes">Notes</label><textarea id="detailNotes" maxlength="10000" placeholder="Conversation notes...">'+safe(l.notes)+'</textarea></div>'+
    '<div class="field wide"><label class="consent"><input type="checkbox" id="detailConsent" '+(l.consent?'checked':'')+'><span>I confirm this business has permitted WhatsApp outreach; I will respect opt-outs.</span></label></div></div>'+
    '<div class="message-box"><p>'+(isNew(l)?'GENERAL MESSAGE':'FOLLOW-UP MESSAGE')+' · SHARED TEMPLATE</p><div class="shared-message-preview">'+safe(currentDraft(l)||'No message saved yet. Open Message Manager to add one.')+'</div><div class="draft-actions"><span>Managed centrally in Message Manager</span><button class="btn btn-outline btn-small" id="goMessageManager">Edit shared message →</button></div></div>'+
@@ -297,7 +298,9 @@
  function closeLead(){activeId=null;$('detailBackdrop').hidden=true;document.body.style.overflow=''}
  function persistModal(){
   const l=leads.find(x=>x.id===activeId);if(!l)return null;
-  const nextStatus=$('detailStatus').value,nextDate=$('detailDate').value,nextTime=$('detailTime').value;\n   if(nextStatus==='Follow-up'&&(!nextDate||!nextTime)){notify('Follow-up ke liye date aur time dono bharna mandatory hai.');$('followupTimeField').hidden=false;$('detailDate').required=true;$('detailTime').required=true;(!nextDate?$('detailDate'):$('detailTime')).focus();return null}\n   l.status=nextStatus;l.followup=nextDate;l.followupTime=nextTime;l.notes=$('detailNotes').value;
+  const nextStatus=$('detailStatus').value,nextDate=$('detailDate').value,nextTime=$('detailTime').value;
+   if(nextStatus==='Follow-up'&&(!nextDate||!nextTime)){notify('Follow-up ke liye date aur time dono bharna mandatory hai.');$('followupTimeField').hidden=false;$('detailDate').required=true;$('detailTime').required=true;(!nextDate?$('detailDate'):$('detailTime')).focus();return null}
+   l.status=nextStatus;l.followup=nextDate;l.followupTime=nextTime;l.notes=$('detailNotes').value;
   l.consent=$('detailConsent').checked;
   l.updated=stamp();save();render();return l
  }
