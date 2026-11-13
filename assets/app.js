@@ -105,7 +105,7 @@
   download('unboxedthinking-leads-'+day()+'.csv',new Blob(['\uFEFF'+out.join('\r\n')],{type:'text/csv;charset=utf-8'}));notify('CSV exported.')}
  function backup(){if(!leads.length){notify('No leads to back up.');return}download('unboxedthinking-full-backup-'+day()+'.json',new Blob([JSON.stringify({version:1,exportedAt:stamp(),leads},null,2)],{type:'application/json'}));notify('Full backup downloaded.')}
  function filtered(){const q=$('search').value.trim().toLowerCase(),st=$('statusFilter').value,pr=$('priorityFilter').value,web=$('websiteFilter').value,sort=$('sort').value;
-  let result=leads.filter(l=>(activeView==='all'||(activeView==='new'?l.status==='New':activeView==='contacted'?l.status==='Connected':activeView==='messageSent'?l.status==='Contacted':activeView==='followups'?l.status==='Follow-up':activeView==='notinterested'?l.status==='Not interested':l.status!=='New'))&&(!q||[l['Business Name'],l.Niche,l.Founder,l.Phone,l.Address,l.Email].some(v=>String(v||'').toLowerCase().includes(q)))&&(!st||l.status===st)&&(!pr||l['Lead Priority']===pr)&&(!web||l['Website Status']===web));
+  let result=leads.filter(l=>(activeView==='all'||(activeView==='new'?l.status==='New':activeView==='contacted'?l.status==='Connected':activeView==='messageSent'?l.status==='Contacted':activeView==='interested'?l.status==='Interested':activeView==='followups'?l.status==='Follow-up':activeView==='notinterested'?l.status==='Not interested':l.status!=='New'))&&(!q||[l['Business Name'],l.Niche,l.Founder,l.Phone,l.Address,l.Email].some(v=>String(v||'').toLowerCase().includes(q)))&&(!$('categoryFilter').value||String(l.Niche||'').trim()===$('categoryFilter').value)&&(!st||l.status===st)&&(!pr||l['Lead Priority']===pr)&&(!web||l['Website Status']===web));
   result.sort((a,b)=>sort==='name'?val(a,'Business Name').localeCompare(val(b,'Business Name')):sort==='recent'?val(b,'updated').localeCompare(val(a,'updated')):sort==='followup'?(a.followup||'9999').localeCompare(b.followup||'9999'):priorityRank(b['Lead Priority'])-priorityRank(a['Lead Priority']));
   return result
  }
@@ -114,10 +114,10 @@
   $('statTotal').textContent=leads.length.toLocaleString('en-IN');$('statContacted').textContent=contacted.toLocaleString('en-IN');$('statInterested').textContent=interested.toLocaleString('en-IN');$('statDue').textContent=due.length.toLocaleString('en-IN');$('leadCount').textContent=leads.length.toLocaleString('en-IN');
   $('overviewLeadRows').innerHTML=leads.slice().sort((a,b)=>val(b,'updated').localeCompare(val(a,'updated'))).map(l=>'<tr><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone||'—')+'</td><td>'+badge(l.status||'New','status')+'</td><td>'+safe(l.updated?new Date(l.updated).toLocaleDateString('en-IN'):'—')+'</td></tr>').join('');
   $('overviewLeadTotal').textContent=leads.length.toLocaleString('en-IN');
-  $('contactedNavCount').textContent=contacted.toLocaleString('en-IN');
-  $('directoryHeading').textContent={new:'New leads',contacted:'Connected leads',all:'All leads',notinterested:'Not Interested',messageSent:'Message Sent',followups:'Follow-ups'}[activeView]||'Leads';
-  $('directoryHint').textContent={new:'Write your first message; after sending, update the lead status.',contacted:'Only leads marked Connected appear here.',all:'Your entire pipeline.',notinterested:'Leads marked Not Interested. Select any lead and use Delete selected to remove it permanently.',messageSent:'Leads whose first message has been marked as sent.',followups:'Only leads with an active Follow-up status and a saved date and time appear here.'}[activeView]||'Your lead pipeline.';
-  options($('priorityFilter'),leads.map(l=>l['Lead Priority']),'priorities');options($('websiteFilter'),leads.map(l=>l['Website Status']),'website statuses');
+  $('contactedNavCount').textContent=contacted.toLocaleString('en-IN');$('interestedNavCount').textContent=leads.filter(x=>x.status==='Interested').length.toLocaleString('en-IN');
+  $('directoryHeading').textContent={new:'New leads',contacted:'Connected leads',all:'All leads',notinterested:'Not Interested',messageSent:'Message Sent',interested:'Interested Leads',followups:'Follow-ups'}[activeView]||'Leads';
+  $('directoryHint').textContent={new:'Write your first message; after sending, update the lead status.',contacted:'Only leads marked Connected appear here.',all:'Your entire pipeline.',notinterested:'Leads marked Not Interested. Select any lead and use Delete selected to remove it permanently.',messageSent:'Leads whose first message has been marked as sent.',interested:'Leads you manually marked Interested after a positive response.',followups:'Only leads with an active Follow-up status and a saved date and time appear here.'}[activeView]||'Your lead pipeline.';
+  options($('categoryFilter'),leads.map(l=>String(l.Niche||'').trim()),'categories');options($('priorityFilter'),leads.map(l=>l['Lead Priority']),'priorities');options($('websiteFilter'),leads.map(l=>l['Website Status']),'website statuses');
   const list=filtered(),per=15,pages=Math.max(1,Math.ceil(list.length/per));page=Math.min(page,pages);const slice=list.slice((page-1)*per,page*per);
   $('leadRows').innerHTML=slice.map(l=>'<tr><td><input class="lead-select" type="checkbox" data-select="'+safe(l.id)+'" aria-label="Select '+safe(l['Business Name']||'lead')+'" '+(selected.has(l.id)?'checked':'')+'></td><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l['Lead Priority'],'priority')+'</td><td>'+safe(l['Website Status']||'Unknown')+'</td><td>'+badge(l.status,'status')+'</td><td>'+safe(l.followup||'—')+'</td><td><div class="row-actions"><button class="mini-btn mini-wa" data-whatsapp="'+safe(l.id)+'">WhatsApp ↗</button>'+(pendingWhatsAppId===l.id?connectionSelect(l):'')+'<button class="mini-btn" data-open="'+safe(l.id)+'">Manage</button></div></td></tr>').join('');
   updateSelectionControls(list,slice);
@@ -422,7 +422,7 @@
  function updateNavigation(){
   document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active',a.dataset.nav===activeView));
   const shell=document.querySelector('.app-shell');
-  if(shell)shell.dataset.page=['new','contacted','all','notinterested','messageSent'].includes(activeView)?'leads':activeView;
+  if(shell)shell.dataset.page=['new','contacted','all','notinterested','messageSent','interested','followups'].includes(activeView)?'leads':activeView;
   selected.clear();page=1;render();
   if(activeView==='whatsapp')renderWhatsAppPage();
   if(activeView==='messages')renderMessageManager();
@@ -477,6 +477,7 @@
   $('singleBackdrop').addEventListener('click',e=>{if(e.target===$('singleBackdrop'))closeSingle()});
   $('singleForm').addEventListener('submit',saveSingle);
   $('bulkDeleteBtn').addEventListener('click',bulkDelete);
+  $('categoryFilter').addEventListener('change',()=>{page=1;selected.clear();render()});
   $('waBulkConsent').addEventListener('click',confirmBulkPermission);
   $('waSelectAll').addEventListener('change',e=>{for(const l of whatsappFiltered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}renderWhatsAppPage()});
   $('waSelectPage').addEventListener('change',e=>{for(const l of whatsappFiltered()){if(e.target.checked)selected.add(l.id);else selected.delete(l.id)}renderWhatsAppPage()});
