@@ -4,7 +4,7 @@
 <meta name="description" content="UnboxedThinking private, browser-based lead outreach workspace.">
 <meta name="robots" content="noindex,nofollow">
 <title>UnboxedThinking — Lead Workspace</title>
-<link rel="stylesheet" href="./assets/app.css?v=7"></head>
+<link rel="stylesheet" href="./assets/app.css?v=8"></head>
 <body class="auth-locked">
 <div class="app-shell">
 <aside class="sidebar">
@@ -13,7 +13,7 @@
  <nav class="side-nav" aria-label="Workspace navigation">
  <a href="#overview" class="nav-link active" data-nav="overview"><span>◫</span> Overview</a>
  <a href="#leads" class="nav-link" data-nav="new"><span>✦</span> New Leads</a>
- <a href="#leads" class="nav-link" data-nav="contacted"><span>◉</span> Contacted Leads <span class="nav-count" id="contactedNavCount">0</span></a>
+ <a href="#leads" class="nav-link" data-nav="contacted"><span>◉</span> Connected Leads <span class="nav-count" id="contactedNavCount">0</span></a>
  <a href="#leads" class="nav-link" data-nav="all"><span>☷</span> All Leads</a>
  <a href="#followups" class="nav-link" data-nav="followups"><span>◷</span> Follow-ups</a>
  <a href="#settings" class="nav-link" data-nav="settings"><span>⚙</span> Data & export</a>
@@ -29,7 +29,7 @@
 <div class="privacy-note" role="note">🔒 <strong>Secure cloud CRM:</strong> Leads sync to your signed-in Supabase account. Access is protected with row-level security. Use your own account and export backups regularly.</div>
 <section class="stats" aria-label="Lead summary">
  <div class="stat"><span>ALL LEADS</span><strong id="statTotal">0</strong><small>Businesses in pipeline</small><i class="stat-mark purple">↗</i></div>
- <div class="stat"><span>CONTACTED</span><strong id="statContacted">0</strong><small>Outreach started</small><i class="stat-mark blue">↗</i></div>
+ <div class="stat"><span>CONNECTED</span><strong id="statContacted">0</strong><small>Outreach started</small><i class="stat-mark blue">↗</i></div>
  <div class="stat"><span>INTERESTED</span><strong id="statInterested">0</strong><small>Positive responses</small><i class="stat-mark green">✦</i></div>
  <div class="stat"><span>DUE FOLLOW-UPS</span><strong id="statDue">0</strong><small>Today & overdue</small><i class="stat-mark orange">◷</i></div>
 </section>
@@ -38,7 +38,7 @@
  <div class="bulk-toolbar"><label class="bulk-check"><input id="selectAllMatching" type="checkbox"> Select all filtered leads</label><span id="selectedCount">0 selected</span><button class="btn btn-danger btn-small" id="bulkDeleteBtn" disabled>Delete selected</button></div>
  <div class="table-panel">
  <div class="filters"><label class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search business, niche, phone, city..." autocomplete="off"></label>
- <select id="statusFilter" aria-label="Filter by status"><option value="">All statuses</option><option>New</option><option>Contacted</option><option>Replied</option><option>Interested</option><option>Follow-up</option><option>Meeting booked</option><option>Won</option><option>Not interested</option></select>
+ <select id="statusFilter" aria-label="Filter by status"><option value="">All statuses</option><option>New</option><option>Contacted</option><option>Connected</option><option>Replied</option><option>Interested</option><option>Follow-up</option><option>Meeting booked</option><option>Won</option><option>Not interested</option></select>
  <select id="priorityFilter" aria-label="Filter by priority"><option value="">All priorities</option></select>
  <select id="websiteFilter" aria-label="Filter by website"><option value="">All website statuses</option></select>
  <select id="sort" aria-label="Sort leads"><option value="priority">Priority first</option><option value="name">Business A–Z</option><option value="followup">Follow-up soonest</option><option value="recent">Recently updated</option></select>
@@ -97,4 +97,4 @@
  <p class="auth-foot">No public signup. Ask your Supabase administrator for an invited account.</p></div></section>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.js" defer></script>
 <script src="./assets/cloud.js?v=8" defer></script>
-<script src="./assets/app.js?v=8" defer></script></body></html>
+<script src="./assets/app.js?v=9" defer></script></body></html>
