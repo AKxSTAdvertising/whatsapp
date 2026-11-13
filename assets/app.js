@@ -123,7 +123,9 @@
   updateSelectionControls(list,slice);
   $('emptyState').hidden=list.length!==0;$('emptyMessage').textContent=leads.length?'No matching leads. Change the filters to see more.':'Import your cleaned CSV to start your outreach workspace.';$('importEmpty').hidden=leads.length>0;
   $('pageSummary').textContent=list.length?((page-1)*per+1)+'–'+Math.min(page*per,list.length)+' of '+list.length+' leads':'0 leads';$('pageNumber').textContent=page+' / '+pages;$('prevPage').disabled=page===1;$('nextPage').disabled=page===pages;
-  due.sort((a,b)=>a.followup.localeCompare(b.followup));$('dueList').innerHTML=due.length?due.slice(0,5).map(l=>'<div class="due-item"><div><strong>'+safe(l['Business Name']||'Business')+'</strong><small>'+safe(l.followup)+' · '+safe(l.Niche||'Follow-up')+'</small></div><button class="mini-btn" data-open="'+safe(l.id)+'">Open →</button></div>').join(''):'<p class="due-none">No follow-ups due. Set a follow-up date on a lead to see it here.</p>';
+  const followupLeads=leads.filter(l=>l.status==='Follow-up'||(l.followup&&l.followup<=today&&!['Won','Not interested'].includes(l.status)));
+  followupLeads.sort((a,b)=>(a.followup||'9999').localeCompare(b.followup||'9999')||val(b,'updated').localeCompare(val(a,'updated')));
+  $('dueList').innerHTML=followupLeads.length?followupLeads.map(l=>'<div class="due-item"><div><strong>'+safe(l['Business Name']||'Business')+'</strong><small>'+safe(l.status||'Follow-up')+' · '+safe(l.followup||'No date set')+' · '+safe(l.Niche||'Lead')+'</small></div><button class="mini-btn" data-open="'+safe(l.id)+'">Manage / Move</button></div>').join(''):'<p class="due-none">No follow-up leads yet. Mark a lead as Follow-up or set its next follow-up date.</p>';
  }
  function whatsappFiltered(){
   const q=$('waSearch').value.trim().toLowerCase(),st=$('waStatusFilter').value,permission=$('waPermissionFilter').value;
@@ -281,7 +283,7 @@
    '<div><span>Priority</span><strong>'+safe(l['Lead Priority']||'—')+'</strong></div>'+
    '<div><span>First sent</span><strong>'+safe(l.sentAt?new Date(l.sentAt).toLocaleString():'Not marked')+'</strong></div>'+
    '<div><span>Reply received</span><strong>'+safe(l.repliedAt?new Date(l.repliedAt).toLocaleString():'Not marked')+'</strong></div></div>'+
-   '<div class="detail-fields"><div class="field"><label for="detailStatus">Lead status</label><select id="detailStatus">'+STATUS.map(st=>'<option '+(l.status===st?'selected':'')+'>'+safe(st)+'</option>').join('')+'</select></div>'+
+   '<div class="detail-fields"><div class="field"><label for="detailStatus">Move to section / Lead status</label><select id="detailStatus">'+STATUS.map(st=>'<option '+(l.status===st?'selected':'')+'>'+safe(st)+'</option>').join('')+'</select></div>'+
    '<div class="field"><label for="detailDate">Next follow-up</label><input type="date" id="detailDate" value="'+safe(l.followup)+'"></div>'+
    '<div class="field wide"><label for="detailNotes">Notes</label><textarea id="detailNotes" maxlength="10000" placeholder="Conversation notes...">'+safe(l.notes)+'</textarea></div>'+
    '<div class="field wide"><label class="consent"><input type="checkbox" id="detailConsent" '+(l.consent?'checked':'')+'><span>I confirm this business has permitted WhatsApp outreach; I will respect opt-outs.</span></label></div></div>'+
