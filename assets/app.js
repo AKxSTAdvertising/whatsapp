@@ -45,7 +45,7 @@
   row.push(field);if(row.some(v=>v.trim()))rows.push(row);return rows
  }
  const CSV_ALIASES={
-  'Business Name':['businessname','business','companyname','company','organization','organisation','firmname','brandname','brand','name'],
+  'Business Name':['businessname','business','companyname','companybusinessname','businesscompanyname','company','organization','organisation','firmname','brandname','brand','name'],
   'Phone':['phone','phonenumber','mobile','mobilenumber','contactnumber','contact','whatsappnumber','whatsapp','telephone','tel'],
   'Niche':['niche','industry','category','businesscategory','type'],
   'Founder':['founder','owner','contactperson','personname','decisionmaker'],
@@ -61,6 +61,15 @@
  function csvHeaderIndex(header,key){
   const aliases=CSV_ALIASES[key]||[key.toLowerCase().replace(/[^a-z0-9]/g,'')];
   for(const alias of aliases){const i=header.indexOf(alias);if(i>=0)return i}
+  // Accept exported labels such as "Business Name (Required)" or "Company / Business Name".
+  if(key==='Business Name'){
+   const i=header.findIndex(h=>/^(business|company|organization|organisation|firm|brand)(name)?/.test(h)&&!/(owner|founder|contact|person)/.test(h));
+   if(i>=0)return i;
+  }
+  if(key==='Phone'){
+   const i=header.findIndex(h=>/^(phone|mobile|whatsapp|contactnumber|telephone|tel)/.test(h));
+   if(i>=0)return i;
+  }
   return -1
  }
  function normalize(o){const d={};for(const k of HEADERS)d[k]=val(o,k);return {...d,id:String(o.id||uid()),status:STATUS.includes(o.status)?o.status:'New',followup:String(o.followup||''),notes:String(o.notes||''),consent:o.consent===true,updated:String(o.updated||stamp()),firstDraft:String(o.firstDraft||''),followupDraft:String(o.followupDraft||''),sentAt:String(o.sentAt||''),repliedAt:String(o.repliedAt||''),followupSentAt:String(o.followupSentAt||'')}}
