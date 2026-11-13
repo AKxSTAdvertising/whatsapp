@@ -220,9 +220,13 @@
  function currentDraft(l){
   if(!isNew(l))return fillTemplate(messageTemplates.followup,l);
   if(l.firstMessageDraft)return l.firstMessageDraft;
-  const variants=ensureGeneralVariants(),index=Math.floor(Math.random()*variants.length);
+  const variants=ensureGeneralVariants(),cacheKey='unboxedthinking.messageVariantAssignments';
+  let assignments={};try{assignments=JSON.parse(localStorage.getItem(cacheKey)||'{}')||{}}catch(e){}
+  const cached=Number(assignments[l.id]);
+  const index=Number.isInteger(cached)&&cached>=1&&cached<=15?cached-1:Math.floor(Math.random()*variants.length);
   l.firstMessageVariant=index+1;
   l.firstMessageDraft=fillTemplate(variants[index],l);
+  assignments[l.id]=index+1;try{localStorage.setItem(cacheKey,JSON.stringify(assignments))}catch(e){}
   l.updated=stamp();save();
   return l.firstMessageDraft;
  }
