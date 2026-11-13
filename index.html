@@ -4,7 +4,7 @@
 <meta name="description" content="UnboxedThinking private, browser-based lead outreach workspace.">
 <meta name="robots" content="noindex,nofollow">
 <title>UnboxedThinking — Lead Workspace</title>
-<link rel="stylesheet" href="./assets/app.css?v=15"></head>
+<link rel="stylesheet" href="./assets/app.css?v=16"></head>
 <body class="auth-locked">
 <div class="app-shell">
 <aside class="sidebar">
@@ -31,12 +31,12 @@
 <section class="page-heading" id="overview"><div><p class="overline">WORK SMARTER · CLOSE BETTER</p><h1>Good morning, <span>let's build momentum.</span></h1><p>Every conversation counts. Keep your best opportunities moving.</p></div><div class="top-actions"><button class="btn btn-outline" id="addSingleTop">＋ Add single lead</button><button class="btn btn-primary" id="importTop">＋ Import leads</button></div></section>
 <div class="privacy-note" role="note">🔒 <strong>Secure cloud CRM:</strong> Leads sync to your signed-in Supabase account. Access is protected with row-level security. Use your own account and export backups regularly.</div>
 <section class="stats" aria-label="Lead summary">
- <div class="stat"><span>ALL LEADS</span><strong id="statTotal">0</strong><small>Businesses in pipeline</small><i class="stat-mark purple">↗</i></div>
- <div class="stat"><span>CONNECTED</span><strong id="statContacted">0</strong><small>Outreach started</small><i class="stat-mark blue">↗</i></div>
- <div class="stat"><span>INTERESTED</span><strong id="statInterested">0</strong><small>Positive responses</small><i class="stat-mark green">✦</i></div>
- <div class="stat"><span>DUE FOLLOW-UPS</span><strong id="statDue">0</strong><small>Today & overdue</small><i class="stat-mark orange">◷</i></div>
+ <button type="button" class="stat stat-link" data-overview-nav="all"><span>ALL LEADS</span><strong id="statTotal">0</strong><small>Open complete pipeline</small><i class="stat-mark purple">↗</i></button>
+ <button type="button" class="stat stat-link" data-overview-nav="contacted"><span>CONNECTED</span><strong id="statContacted">0</strong><small>View connected leads</small><i class="stat-mark blue">↗</i></button>
+ <button type="button" class="stat stat-link" data-overview-nav="interested"><span>INTERESTED</span><strong id="statInterested">0</strong><small>View interested leads</small><i class="stat-mark green">✦</i></button>
+ <button type="button" class="stat stat-link" data-overview-nav="followups"><span>FOLLOW-UPS</span><strong id="statDue">0</strong><small>View all follow-up leads</small><i class="stat-mark orange">◷</i></button>
 </section>
-<section class="overview-all-leads" aria-label="All leads overview"><div class="section-header"><div><p class="overline">READ-ONLY SNAPSHOT</p><h2>All Leads <span class="count" id="overviewLeadTotal">0</span></h2><p class="directory-sub">Complete lead list with current status. This overview is read-only; use the dedicated modules to manage leads.</p></div><button class="btn btn-outline btn-small module-refresh" type="button" data-module-refresh="overview" aria-label="Refresh overview module"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/></svg><span>Refresh</span></button></div><div class="table-panel"><div class="table-scroller"><table><thead><tr><th>BUSINESS</th><th>PHONE</th><th>STATUS</th><th>LAST UPDATED</th></tr></thead><tbody id="overviewLeadRows"></tbody></table></div></div></section>
+<section class="overview-all-leads" aria-label="All leads overview"><div class="section-header"><div><p class="overline">READ-ONLY SNAPSHOT</p><h2>All Leads <span class="count" id="overviewLeadTotal">0</span></h2><p class="directory-sub">Live view of every lead and its latest status. Use Manage to update a lead or open a status card to view that module.</p></div><button class="btn btn-outline btn-small module-refresh" type="button" data-module-refresh="overview" aria-label="Refresh overview module"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/></svg><span>Refresh</span></button></div><div class="table-panel"><div class="table-scroller"><table><thead><tr><th>BUSINESS</th><th>PHONE</th><th>STATUS</th><th>LAST UPDATED</th><th>ACTION</th></tr></thead><tbody id="overviewLeadRows"></tbody></table></div></div></section>
 <section class="workspace" id="leads">
  <div class="section-header"><div><p class="overline">MANAGE YOUR PIPELINE</p><h2><span id="directoryHeading">New leads</span> <span class="count" id="leadCount">0</span></h2><p class="directory-sub" id="directoryHint">Leads awaiting their first message. Select a lead to write your own WhatsApp message.</p></div><div class="toolbar"><button class="btn btn-outline btn-small module-refresh" type="button" data-module-refresh="leads" aria-label="Refresh leads module"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/></svg><span>Refresh</span></button><button class="btn btn-outline" id="exportBtn">Export CSV</button><button class="btn btn-outline" id="backupBtn">↧ Full backup</button></div></div>
  <div class="bulk-toolbar"><label class="bulk-check"><input id="selectAllMatching" type="checkbox"> Select all filtered leads</label><span id="selectedCount">0 selected</span><button class="btn btn-danger btn-small" id="bulkDeleteBtn" disabled>Delete selected</button></div>
@@ -105,7 +105,7 @@
  <p class="auth-foot">No public signup. Ask your Supabase administrator for an invited account.</p></div></section>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.js" defer></script>
 <script src="./assets/cloud.js?v=11" defer></script>
-<script src="./assets/app.js?v=38" defer></script>
+<script src="./assets/app.js?v=39" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded',function(){
  const form=document.getElementById('loginForm');
