@@ -177,7 +177,7 @@
   if(!cloudReady){notify('Sign in before saving message templates.');return}
   const variants=Array.from(document.querySelectorAll('[data-general-variant]')).map(el=>el.value.trim());
   if(variants.length!==50){notify('All 50 first-message variants must be available.');return}
-  if(variants.some(v=>!v)){notify('Please complete all 15 first-message variants before saving.');return}
+  if(variants.some(v=>!v)){notify('Please complete all 50 first-message variants before saving.');return}
   const next={general:variants[0],generalVariants:variants,followup:$('followupMessageTemplate').value.trim()};
   if(!next.followup){notify('Please keep a shared follow-up message.');return}
   const btn=$('saveMessageTemplates');btn.disabled=true;btn.textContent='Saving…';
@@ -525,7 +525,9 @@
     leads=data.map(normalize);
     const savedTemplates=await window.UnboxedCloud.loadSettings();
     if(savedTemplates&&typeof savedTemplates==='object')messageTemplates={...messageTemplates,...savedTemplates};
+    const needsGeneralMigration=!Array.isArray(savedTemplates?.generalVariants)||savedTemplates.generalVariants.length<50;
     ensureGeneralVariants();
+    if(needsGeneralMigration){try{await window.UnboxedCloud.saveSettings({general:messageTemplates.general,generalVariants:messageTemplates.generalVariants,followup:messageTemplates.followup});}catch(migrationError){console.warn('Could not auto-save 50-message migration; use Save both messages in Message Manager.',migrationError)}}
     $('whatsappReturnBackdrop').dataset.shown='';
     selected.clear();cloudReady=true;markSynced();page=1;render();renderMessageManager();
     document.body.classList.remove('auth-locked');$('authGate').hidden=true;
