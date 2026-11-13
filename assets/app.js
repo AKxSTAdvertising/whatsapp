@@ -2,9 +2,9 @@
 /* UnboxedThinking CRM — browser-local MVP. Never auto-sends messages or uploads lead data. */
 (()=> {
  const KEY='unboxedthinking.crm.v1';
- const STATUS=['New','Contacted','Replied','Interested','Follow-up','Meeting booked','Won','Not interested'];
+ const STATUS=['New','Contacted','Connected','Replied','Interested','Follow-up','Meeting booked','Won','Not interested'];
  const HEADERS=['Business Name','Niche','Founder','Phone','Email','Address','Website','Rating','Reviews','Website Status','Digital Score','Lead Priority'];
- let leads=[],page=1,activeId=null,toastTimer=null,cloudReady=false,syncQueue=Promise.resolve(),synced=new Map(),syncPending=0,selected=new Set(),bulkBusy=false,activeView='new',messageTemplates={general:'Hi {{business_name}}, I came across your business and wanted to connect. We help businesses improve their online presence and generate more enquiries. Would you be open to a quick conversation?',followup:'Hi {{business_name}}, just following up on my earlier message. I wanted to check if you had a chance to review it. Happy to share more details if useful.'},previewType='general';
+ let leads=[],page=1,activeId=null,toastTimer=null,pendingWhatsAppId=localStorage.getItem('unboxedthinking.pendingWhatsAppLead')||'',cloudReady=false,syncQueue=Promise.resolve(),synced=new Map(),syncPending=0,selected=new Set(),bulkBusy=false,activeView='new',messageTemplates={general:'Hi {{business_name}}, I came across your business and wanted to connect. We help businesses improve their online presence and generate more enquiries. Would you be open to a quick conversation?',followup:'Hi {{business_name}}, just following up on my earlier message. I wanted to check if you had a chance to review it. Happy to share more details if useful.'},previewType='general';
  const $=id=>document.getElementById(id);
  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const val=(o,k)=>String(o?.[k]??'').trim();
@@ -73,11 +73,11 @@
  function render(){let today=day(),contacted=leads.filter(x=>x.status!=='New').length,interested=leads.filter(x=>['Interested','Meeting booked','Won'].includes(x.status)).length,due=leads.filter(x=>x.followup&&x.followup<=today&&!['Won','Not interested'].includes(x.status));
   $('statTotal').textContent=leads.length.toLocaleString('en-IN');$('statContacted').textContent=contacted.toLocaleString('en-IN');$('statInterested').textContent=interested.toLocaleString('en-IN');$('statDue').textContent=due.length.toLocaleString('en-IN');$('leadCount').textContent=leads.length.toLocaleString('en-IN');
   $('contactedNavCount').textContent=contacted.toLocaleString('en-IN');
-  $('directoryHeading').textContent={new:'New leads',contacted:'Contacted leads',all:'All leads'}[activeView];
-  $('directoryHint').textContent={new:'Write your first message; after sending, click Mark as Sent.',contacted:'Use a separate second message and manually record replies.',all:'Your entire pipeline.'}[activeView];
+  $('directoryHeading').textContent={new:'New leads',contacted:'Connected leads',all:'All leads'}[activeView];
+  $('directoryHint').textContent={new:'Write your first message; after sending, click Mark as Sent.',contacted:'Leads you have marked as Connected. Use the shared follow-up message.',all:'Your entire pipeline.'}[activeView];
   options($('priorityFilter'),leads.map(l=>l['Lead Priority']),'priorities');options($('websiteFilter'),leads.map(l=>l['Website Status']),'website statuses');
   const list=filtered(),per=15,pages=Math.max(1,Math.ceil(list.length/per));page=Math.min(page,pages);const slice=list.slice((page-1)*per,page*per);
-  $('leadRows').innerHTML=slice.map(l=>'<tr><td><input class="lead-select" type="checkbox" data-select="'+safe(l.id)+'" aria-label="Select '+safe(l['Business Name']||'lead')+'" '+(selected.has(l.id)?'checked':'')+'></td><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l['Lead Priority'],'priority')+'</td><td>'+safe(l['Website Status']||'Unknown')+'</td><td>'+badge(l.status,'status')+'</td><td>'+safe(l.followup||'—')+'</td><td><div class="row-actions"><button class="mini-btn mini-wa" data-whatsapp="'+safe(l.id)+'">WhatsApp ↗</button><button class="mini-btn" data-open="'+safe(l.id)+'">Manage</button></div></td></tr>').join('');
+  $('leadRows').innerHTML=slice.map(l=>'<tr><td><input class="lead-select" type="checkbox" data-select="'+safe(l.id)+'" aria-label="Select '+safe(l['Business Name']||'lead')+'" '+(selected.has(l.id)?'checked':'')+'></td><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l['Lead Priority'],'priority')+'</td><td>'+safe(l['Website Status']||'Unknown')+'</td><td>'+badge(l.status,'status')+'</td><td>'+safe(l.followup||'—')+'</td><td><div class="row-actions"><button class="mini-btn mini-wa" data-whatsapp="'+safe(l.id)+'">WhatsApp ↗</button>'+(pendingWhatsAppId===l.id?connectionSelect(l):'')+'<button class="mini-btn" data-open="'+safe(l.id)+'">Manage</button></div></td></tr>').join('');
   updateSelectionControls(list,slice);
   $('emptyState').hidden=list.length!==0;$('emptyMessage').textContent=leads.length?'No matching leads. Change the filters to see more.':'Import your cleaned CSV to start your outreach workspace.';$('importEmpty').hidden=leads.length>0;
   $('pageSummary').textContent=list.length?((page-1)*per+1)+'–'+Math.min(page*per,list.length)+' of '+list.length+' leads':'0 leads';$('pageNumber').textContent=page+' / '+pages;$('prevPage').disabled=page===1;$('nextPage').disabled=page===pages;
@@ -89,7 +89,7 @@
  }
  function renderWhatsAppPage(){
   const list=whatsappFiltered();
-  $('waRows').innerHTML=list.map(l=>'<tr><td><input type="checkbox" data-wa-select="'+safe(l.id)+'" '+(selected.has(l.id)?'checked':'')+'></td><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l.status,'status')+'</td><td>'+ (l.consent?'<span class="chip interested">Confirmed</span>':'<span class="chip new">Not confirmed</span>') +'</td><td>'+ (isNew(l)?'First message':'Follow-up') +'</td><td><button class="mini-btn mini-wa" data-whatsapp="'+safe(l.id)+'" '+(!l.consent?'title="Confirm permission for this lead first"':'')+'>Open WhatsApp ↗</button></td></tr>').join('');
+  $('waRows').innerHTML=list.map(l=>'<tr><td><input type="checkbox" data-wa-select="'+safe(l.id)+'" '+(selected.has(l.id)?'checked':'')+'></td><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l.status,'status')+'</td><td>'+ (l.consent?'<span class="chip interested">Confirmed</span>':'<span class="chip new">Not confirmed</span>') +'</td><td>'+ (isNew(l)?'First message':'Follow-up') +'</td><td><button class="mini-btn mini-wa" data-whatsapp="'+safe(l.id)+'" '+(!l.consent?'title="Confirm permission for this lead first"':'')+'>Open WhatsApp ↗</button>'+(pendingWhatsAppId===l.id?connectionSelect(l):'')+'</td></tr>').join('');
   const count=list.filter(l=>selected.has(l.id)).length;
   $('waSelectedCount').textContent=selected.size+' selected';
   $('waBulkConsent').disabled=!cloudReady||selected.size===0;
@@ -195,6 +195,7 @@
 
  function followupSuggestion(l){return 'Hi, I wanted to follow up on my earlier message about '+(l['Business Name']||'your business')+'. Would you be open to a short conversation? No worries if not.'}
  function isNew(l){return l.status==='New'}
+ function connectionSelect(l){return '<select class="connect-select" data-connect-status="'+safe(l.id)+'" aria-label="Mark '+safe(l['Business Name']||'lead')+' as connected"><option value="">Mark as Connected</option><option value="Connected">Connected</option></select>;}
  function fillTemplate(template,l){
   return String(template||'').replace(/\{\{\s*(business_name|niche|founder)\s*\}\}/gi,(_,key)=>{
    const map={'business_name':l['Business Name']||'there','niche':l.Niche||'your industry','founder':l.Founder||''};
@@ -238,6 +239,8 @@
   const nativeUrl='whatsapp://send?phone='+phone+suffix;
   const webUrl='https://web.whatsapp.com/send?phone='+phone+suffix;
   const fallback=$('waWebFallback');if(fallback){fallback.href=webUrl;fallback.hidden=false}
+  pendingWhatsAppId=l.id;try{localStorage.setItem('unboxedthinking.pendingWhatsAppLead',l.id)}catch(e){}
+  render();if($('waRows'))renderWhatsAppPage();
   // Opens installed app directly, subject to browser/OS protocol approval.
   window.location.href=nativeUrl;
   notify('Opening WhatsApp app. If unavailable, use the direct Web link in Manage.')
@@ -245,6 +248,13 @@
  function openWhatsApp(){const l=persistModal();if(l)directWhatsApp(l,activeMessage(l))}
  function quickWhatsApp(id){const l=leads.find(x=>x.id===id);if(l)directWhatsApp(l,currentDraft(l)||'')}
  function callLead(){const l=persistModal();if(!l)return;const d=String(l.Phone).replace(/[^\d+]/g,'');if(!d){notify('Phone number missing.');return}window.location.href='tel:'+encodeURIComponent(d)}
+ function markConnected(id){
+  const l=leads.find(x=>x.id===id);if(!l)return;
+  l.status='Connected';l.sentAt=l.sentAt||stamp();l.updated=stamp();
+  pendingWhatsAppId='';try{localStorage.removeItem('unboxedthinking.pendingWhatsAppLead')}catch(e){}
+  save();activeView='contacted';updateNavigation();location.hash='leads';
+  notify('Lead marked as Connected and moved to Connected Leads.');
+ }
  function markAction(kind){
   const l=persistModal();if(!l)return;
   if(kind==='sent'){l.status='Contacted';l.sentAt=l.sentAt||stamp()}
@@ -288,6 +298,7 @@
   for(const id of ['search','statusFilter','priorityFilter','websiteFilter','sort'])$(id).addEventListener(id==='search'?'input':'change',()=>{page=1;render()});
   $('prevPage').addEventListener('click',()=>{page--;render()});$('nextPage').addEventListener('click',()=>{page++;render()});
   document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open);const wa=e.target.closest('[data-whatsapp]');if(wa)quickWhatsApp(wa.dataset.whatsapp)});
+  document.addEventListener('change',e=>{const connect=e.target.closest('[data-connect-status]');if(connect&&connect.value==='Connected')markConnected(connect.dataset.connectStatus)});
   $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('singleBackdrop').hidden)closeSingle();else if(!$('detailBackdrop').hidden)closeLead()}});
   $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){persistModal();notify('Changes queued for Supabase sync.')}if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){$(isNew(l)?'detailPitch':'detailFollowupPitch').select();notify('Select and copy your message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='markReplied')markAction('replied');if(id==='markFollowup')markAction('followup');if(id==='goMessageManager'){closeLead();activeView='messages';updateNavigation()}});
