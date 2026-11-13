@@ -96,7 +96,7 @@
  function download(name,blob){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  function downloadCSVTemplate(){
   const out=[HEADERS.map(csvCell).join(',')];
-  download('unboxedthinking-leads-template.csv',new Blob(['\\uFEFF'+out.join('\\r\\n')],{type:'text/csv;charset=utf-8'}));
+  download('unboxedthinking-leads-template.csv',new Blob(['\uFEFF'+out.join('\r\n')],{type:'text/csv;charset=utf-8'}));
   notify('CSV import template downloaded. Fill Business Name and Phone, then import it.');
  }
  function exportCSV(){if(!leads.length){notify('Import leads first.');return}
