@@ -34,19 +34,44 @@
  function priorityRank(p){const x=String(p||'').toLowerCase();if(x.includes('high')||x==='hot'||x==='1')return 3;if(x.includes('medium')||x==='warm'||x==='2')return 2;return 1}
  function badge(s,kind){const cl=kind==='priority'?(priorityRank(s)===3?'high':priorityRank(s)===2?'medium':'low'):String(s).toLowerCase().replace(/\s+/g,'-');return '<span class="chip '+safe(cl)+'">'+safe(s||'—')+'</span>'}
  function parseCSV(text){
-  text=text.replace(/^\uFEFF/,'');const rows=[];let row=[],field='',quoted=false;
+  text=String(text||'').replace(/^\uFEFF/,'');
+  let delimiter=',',counts={',':0,';':0,'\t':0},quoted=false;
+  for(let i=0;i<text.length&&text[i]!=='\n'&&text[i]!=='\r';i++){const ch=text[i];if(ch==='"'){if(quoted&&text[i+1]==='"')i++;else quoted=!quoted}else if(!quoted&&Object.prototype.hasOwnProperty.call(counts,ch))counts[ch]++}
+  delimiter=Object.keys(counts).sort((x,y)=>counts[y]-counts[x])[0];
+  const rows=[];let row=[],field='';quoted=false;
   for(let i=0;i<text.length;i++){const ch=text[i];if(quoted){if(ch==='"'&&text[i+1]==='"'){field+='"';i++}else if(ch==='"')quoted=false;else field+=ch}
-   else if(ch==='"')quoted=true;else if(ch===','){row.push(field);field=''}else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(field);field='';if(row.some(v=>v.trim()))rows.push(row);row=[]}else field+=ch}
+   else if(ch==='"')quoted=true;else if(ch===delimiter){row.push(field);field=''}else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(field);field='';if(row.some(v=>v.trim()))rows.push(row);row=[]}else field+=ch}
   if(quoted)throw new Error('CSV has an unclosed quotation mark.');
   row.push(field);if(row.some(v=>v.trim()))rows.push(row);return rows
  }
+ const CSV_ALIASES={
+  'Business Name':['businessname','business','companyname','company','organization','organisation','firmname','brandname','brand','name'],
+  'Phone':['phone','phonenumber','mobile','mobilenumber','contactnumber','contact','whatsappnumber','whatsapp','telephone','tel'],
+  'Niche':['niche','industry','category','businesscategory','type'],
+  'Founder':['founder','owner','contactperson','personname','decisionmaker'],
+  'Email':['email','emailaddress','mail'],
+  'Address':['address','location','fulladdress','businessaddress'],
+  'Website':['website','websiteurl','url','domain','web'],
+  'Rating':['rating','googlerating','reviewrating'],
+  'Reviews':['reviews','reviewcount','numberofreviews'],
+  'Website Status':['websitestatus','websiteavailability','haswebsite'],
+  'Digital Score':['digitalscore','score'],
+  'Lead Priority':['leadpriority','priority']
+ };
+ function csvHeaderIndex(header,key){
+  const aliases=CSV_ALIASES[key]||[key.toLowerCase().replace(/[^a-z0-9]/g,'')];
+  for(const alias of aliases){const i=header.indexOf(alias);if(i>=0)return i}
+  return -1
+ }
  function normalize(o){const d={};for(const k of HEADERS)d[k]=val(o,k);return {...d,id:String(o.id||uid()),status:STATUS.includes(o.status)?o.status:'New',followup:String(o.followup||''),notes:String(o.notes||''),consent:o.consent===true,updated:String(o.updated||stamp()),firstDraft:String(o.firstDraft||''),followupDraft:String(o.followupDraft||''),sentAt:String(o.sentAt||''),repliedAt:String(o.repliedAt||''),followupSentAt:String(o.followupSentAt||'')}}
  function importCSV(text){const rows=parseCSV(text);if(rows.length<2)throw new Error('CSV does not contain any lead rows.');
-  const header=rows.shift().map(h=>h.trim().toLowerCase().replace(/[^a-z0-9]/g,''));
-  const idx=header.indexOf('phone');if(idx<0)throw new Error('The CSV needs a Phone column.');
+  const header=rows.shift().map(h=>String(h||'').replace(/^\uFEFF/,'').trim().toLowerCase().replace(/[^a-z0-9]/g,''));
+  const phoneIndex=csvHeaderIndex(header,'Phone');if(phoneIndex<0)throw new Error('Phone column not found. Use Phone, Mobile, Mobile Number or Contact Number.');
+  const businessIndex=csvHeaderIndex(header,'Business Name');
+  if(businessIndex<0)throw new Error('Business name column not found. Use Business Name, Company Name, Business, Company or Name.');
   let added=0,skipped=0,duplicates=0;
   const existing=new Set(leads.map(l=>dedupKey(l)));
-  for(const row of rows){const raw={};HEADERS.forEach(k=>{const j=header.indexOf(k.toLowerCase().replace(/[^a-z0-9]/g,''));raw[k]=j>=0?String(row[j]??'').trim():''});
+  for(const row of rows){const raw={};HEADERS.forEach(k=>{const j=csvHeaderIndex(header,k);raw[k]=j>=0?String(row[j]??'').trim():''});
    if(!truthyPhone(raw.Phone)){skipped++;continue}
    const key=dedupKey(raw);if(existing.has(key)){duplicates++;continue}
    const lead=normalize(raw);leads.push(lead);existing.add(key);added++}
