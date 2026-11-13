@@ -479,6 +479,7 @@
  async function bootstrap(){
   // Attach authentication first. A later CRM UI initialization error must never
   // prevent the login form from receiving its submit handler.
+  $('loginForm').dataset.loginBound='1';
   $('loginForm').addEventListener('submit',async e=>{
    e.preventDefault();const b=$('loginButton');b.disabled=true;b.textContent='Signing in…';$('loginError').textContent='';
    try{
