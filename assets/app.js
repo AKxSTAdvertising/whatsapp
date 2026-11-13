@@ -146,8 +146,7 @@
  }
  function ensureGeneralVariants(){
   let variants=Array.isArray(messageTemplates.generalVariants)?messageTemplates.generalVariants.slice(0,50):[];
-  if(!variants.length){variants=DEFAULT_GENERAL_VARIANTS.slice();if(messageTemplates.general)variants[0]=messageTemplates.general;}
-  while(variants.length<50)variants.push(DEFAULT_GENERAL_VARIANTS[variants.length]);
+  if(variants.length<50)variants=DEFAULT_GENERAL_VARIANTS.slice();
   messageTemplates.generalVariants=variants;
   messageTemplates.general=variants[0];
   return variants;
