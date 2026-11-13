@@ -110,7 +110,7 @@
   return result
  }
  function options(select,values,label){const keep=select.value;select.innerHTML='<option value="">All '+safe(label)+'</option>'+[...new Set(values.filter(Boolean))].sort().map(v=>'<option value="'+safe(v)+'">'+safe(v)+'</option>').join('');select.value=keep}
- function render(){let today=day(),contacted=leads.filter(x=>x.status==='Connected').length,interested=leads.filter(x=>['Interested','Meeting booked','Won'].includes(x.status)).length,due=leads.filter(x=>x.status==='Follow-up'&&x.followup&&x.followup<=today);
+ function render(){let today=day(),contacted=leads.filter(x=>x.status==='Connected').length,interested=leads.filter(x=>x.status==='Interested').length,due=leads.filter(x=>x.status==='Follow-up'&&x.followup&&x.followup<=today);
   $('statTotal').textContent=leads.length.toLocaleString('en-IN');$('statContacted').textContent=contacted.toLocaleString('en-IN');$('statInterested').textContent=interested.toLocaleString('en-IN');$('statDue').textContent=due.length.toLocaleString('en-IN');$('leadCount').textContent=leads.length.toLocaleString('en-IN');
   $('overviewLeadRows').innerHTML=leads.slice().sort((a,b)=>val(b,'updated').localeCompare(val(a,'updated'))).map(l=>'<tr><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone||'—')+'</td><td>'+badge(l.status||'New','status')+'</td><td>'+safe(l.updated?new Date(l.updated).toLocaleDateString('en-IN'):'—')+'</td></tr>').join('');
   $('overviewLeadTotal').textContent=leads.length.toLocaleString('en-IN');
