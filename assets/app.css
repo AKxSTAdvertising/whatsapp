@@ -134,3 +134,7 @@ body.auth-locked .app-shell{display:none}
 .followup-schedule-modal .import-intro{margin:16px 0;color:#72788e;font-size:12px;line-height:1.65}
 .followup-schedule-modal .detail-fields{margin-top:14px}
 .followup-schedule-modal .modal-actions{margin-top:20px}
+
+
+/* Overview cards are live shortcuts into their matching lead modules. */
+.stat-link{appearance:none;-webkit-appearance:none;text-align:left;width:100%;font:inherit;color:inherit;cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}.stat-link:hover{transform:translateY(-2px);border-color:#b9afea;box-shadow:0 8px 24px rgba(35,29,75,.09)}.stat-link:focus-visible{outline:3px solid rgba(123,98,214,.35);outline-offset:3px}
