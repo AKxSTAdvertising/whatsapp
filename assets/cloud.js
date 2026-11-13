@@ -59,11 +59,24 @@
   const {error}=await c.from(table).upsert(row,{onConflict:'user_id,dedup_key'});
   if(error)throw error;
  }
+ const payloadKey=x=>String(x?.Phone||'').replace(/\\D/g,'')+'|'+String(x?.['Business Name']||'').toLowerCase().replace(/\\s+/g,' ').trim();
  async function removeKeys(keys){
   if(!Array.isArray(keys)||!keys.length)return 0;
-  const user=await requireUser(),c=await getClient();let removed=0;
-  for(let i=0;i<keys.length;i+=80){
-   const {data,error}=await c.from(table).delete().eq('user_id',user.id).in('dedup_key',keys.slice(i,i+80)).select('dedup_key');
+  const user=await requireUser(),c=await getClient(),wanted=new Set(keys.map(String)),storedKeys=[];
+  // Match against both the stored database key and the lead payload. This also
+  // handles older records whose dedup_key format differs from the current UI.
+  for(let from=0;;from+=500){
+   const {data,error}=await c.from(table).select('dedup_key,payload').eq('user_id',user.id).neq('dedup_key','__crm_settings__').order('created_at',{ascending:true}).range(from,from+499);
+   if(error)throw error;
+   for(const row of data||[]){
+    if(wanted.has(String(row.dedup_key))||wanted.has(payloadKey(row.payload)))storedKeys.push(String(row.dedup_key));
+   }
+   if(!data||data.length<500)break;
+   if(from>=50000)throw new Error('Too many leads to process in one delete operation.');
+  }
+  let removed=0;
+  for(let i=0;i<storedKeys.length;i+=80){
+   const {data,error}=await c.from(table).delete().eq('user_id',user.id).in('dedup_key',storedKeys.slice(i,i+80)).select('dedup_key');
    if(error)throw error;removed+=(data||[]).length;
   }
   return removed;
