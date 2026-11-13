@@ -293,6 +293,18 @@
    '<div class="modal-actions"><button class="btn btn-primary" id="saveLead">Save changes</button><button class="btn btn-outline" id="copyPitch">Copy active message</button><button class="btn btn-whatsapp" id="waLead">WhatsApp App ↗</button><button class="btn btn-outline" id="callLead">Call</button></div>'+
    '<div class="whatsapp-fallback"><a id="waWebFallback" href="#" target="_blank" rel="noopener noreferrer" hidden>App unavailable? Open WhatsApp Web directly ↗</a></div>'+
    '<div class="modal-actions workflow-actions"><button class="btn btn-outline" id="markSent" '+(!isNew(l)?'disabled':'')+'>✓ Mark as Sent</button><button class="btn btn-outline" id="markReplied" '+(isNew(l)?'disabled':'')+'>✓ Mark as Replied</button><button class="btn btn-outline" id="markFollowup" '+(isNew(l)?'disabled':'')+'>◷ Follow-up Sent</button></div>';
+  const statusSelect=$('detailStatus');
+  const syncFollowupFields=()=>{
+   const show=statusSelect.value==='Follow-up';
+   $('followupTimeField').hidden=!show;
+   $('detailDate').required=show;
+   $('detailTime').required=show;
+   if(show){$('detailDate').setAttribute('aria-required','true');$('detailTime').setAttribute('aria-required','true')}
+   else{$('detailDate').removeAttribute('aria-required');$('detailTime').removeAttribute('aria-required')}
+  };
+  statusSelect.addEventListener('change',syncFollowupFields);
+  statusSelect.addEventListener('input',syncFollowupFields);
+  syncFollowupFields();
   $('detailBackdrop').hidden=false;document.body.style.overflow='hidden';$('closeDetail').focus()
  }
  function closeLead(){activeId=null;$('detailBackdrop').hidden=true;document.body.style.overflow=''}
