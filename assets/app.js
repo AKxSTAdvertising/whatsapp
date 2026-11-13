@@ -357,6 +357,16 @@
  function directWhatsApp(l,message){
   const phone=cleanNumber(l.Phone);if(!phone){notify('Please enter a valid phone number.');return}
   if(!l.consent){notify("Confirm this contact's permission in WhatsApp Outreach first.");return}
+  // Pick a fresh random first-touch message on every WhatsApp open; do not lock a lead to one variant.
+  if(isNew(l)){
+   const variants=ensureGeneralVariants();
+   const previous=Number(l.firstMessageVariant)-1;
+   let index=Math.floor(Math.random()*variants.length);
+   if(variants.length>1&&index===previous)index=(index+1+Math.floor(Math.random()*(variants.length-1)))%variants.length;
+   l.firstMessageVariant=index+1;
+   l.firstMessageDraft=fillTemplate(variants[index],l);
+   l.updated=stamp();message=l.firstMessageDraft;save();
+  }
   const suffix=message?'&text='+encodeURIComponent(message):'';
   const nativeUrl='whatsapp://send?phone='+phone+suffix;
   const webUrl='https://web.whatsapp.com/send?phone='+phone+suffix;
