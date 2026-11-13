@@ -477,8 +477,13 @@
   }catch(e){cloudReady=false;document.body.classList.add('auth-locked');$('authGate').hidden=false;$('loginError').textContent='Unable to load private leads: '+e.message;}
  }
  async function bootstrap(){
-  try{await window.UnboxedCloud?.ready?.()}catch(e){$('loginError').textContent='Supabase connection setup failed: '+e.message;return}
+  // Bind the login form before waiting for Supabase so a failed CDN/client init
+  // never leaves the Sign in button silently inert.
   bind();updateNavigation();render();
+  try{await window.UnboxedCloud?.ready?.()}catch(e){
+   $('loginError').textContent='Supabase connection setup failed: '+(e?.message||String(e));
+   console.error('Supabase startup failed:',e);
+  }
   $('loginForm').addEventListener('submit',async e=>{
    e.preventDefault();const b=$('loginButton');b.disabled=true;b.textContent='Signing in…';$('loginError').textContent='';
    try{if(!window.UnboxedCloud||typeof window.UnboxedCloud.signIn!=='function')throw new Error(window.UnboxedCloud?.error||'Supabase login service is still loading. Refresh the page and try again.');await window.UnboxedCloud.signIn($('loginEmail').value.trim(),$('loginPassword').value);$('loginPassword').value='';await enterCloud()}
