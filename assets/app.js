@@ -294,18 +294,6 @@
    '<div class="whatsapp-fallback"><a id="waWebFallback" href="#" target="_blank" rel="noopener noreferrer" hidden>App unavailable? Open WhatsApp Web directly ↗</a></div>'+
    '<div class="modal-actions workflow-actions"><button class="btn btn-outline" id="markSent">✓ Message Sent</button><button class="btn btn-outline" id="moveToNew">↶ Move to New Leads</button><button class="btn btn-outline" id="markFollowup" '+(isNew(l)?'disabled':'')+'>◷ Follow-up Sent</button></div>';
   const statusSelect=$('detailStatus');
-  const syncFollowupFields=()=>{
-   const show=statusSelect.value==='Follow-up';
-   $('followupTimeField').hidden=!show;
-   $('detailDate').required=show;
-   $('detailTime').required=show;
-   if(show){$('detailDate').setAttribute('aria-required','true');$('detailTime').setAttribute('aria-required','true')}
-   else{$('detailDate').removeAttribute('aria-required');$('detailTime').removeAttribute('aria-required')}
-  };
-  statusSelect.addEventListener('change',syncFollowupFields);
-  statusSelect.addEventListener('input',syncFollowupFields);
-  syncFollowupFields();
-  const statusSelect=$('detailStatus');
   let previousStatus=l.status||'New';
   const syncFollowupFields=()=>{
    const show=statusSelect.value==='Follow-up';
