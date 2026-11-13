@@ -127,3 +127,10 @@ body.auth-locked .app-shell{display:none}
 @media(max-width:575px){.module-actions{width:100%}.panel-head .module-actions{width:auto}.module-refresh{min-height:34px}}
 
 .nav-link>.nav-count{width:auto;min-width:20px;font-size:10px;line-height:1.2;text-align:center;padding:3px 7px}
+
+/* Follow-up date/time quick popup */
+.followup-schedule-backdrop{z-index:125}
+.followup-schedule-modal{width:min(480px,100%)}
+.followup-schedule-modal .import-intro{margin:16px 0;color:#72788e;font-size:12px;line-height:1.65}
+.followup-schedule-modal .detail-fields{margin-top:14px}
+.followup-schedule-modal .modal-actions{margin-top:20px}
