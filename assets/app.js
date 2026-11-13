@@ -338,8 +338,17 @@
   if(activeView==='whatsapp')renderWhatsAppPage();
   if(activeView==='messages')renderMessageManager();
  }
- function bind(){for(const id of ['importTop','importEmpty','importSettings'])$(id).addEventListener('click',()=>$('fileInput').click());
-  $('fileInput').addEventListener('change',async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024){notify('File is too large (limit: 10 MB).');return}try{const t=await f.text();if(f.name.toLowerCase().endsWith('.json'))await handleJSON(t);else importCSV(t)}catch(err){notify('Import failed: '+err.message)}});
+ function openImportChooser(){ $('importBackdrop').hidden=false; }
+ function closeImportChooser(){ $('importBackdrop').hidden=true; }
+ async function readImportFile(e,isJSON){const f=e.target.files?.[0];e.target.value='';if(!f)return;closeImportChooser();if(f.size>10*1024*1024){notify('File is too large (limit: 10 MB).');return}try{const t=await f.text();if(isJSON)await handleJSON(t);else importCSV(t)}catch(err){notify('Import failed: '+err.message)}}
+ function bind(){for(const id of ['importTop','importEmpty','importSettings'])$(id).addEventListener('click',openImportChooser);
+  $('uploadCsvBtn').addEventListener('click',()=>$('fileInput').click());
+  $('restoreJsonBtn').addEventListener('click',()=>$('jsonInput').click());
+  $('downloadImportTemplateBtn').addEventListener('click',downloadCSVTemplate);
+  $('closeImportChooser').addEventListener('click',closeImportChooser);
+  $('importBackdrop').addEventListener('click',e=>{if(e.target===$('importBackdrop'))closeImportChooser()});
+  $('fileInput').addEventListener('change',e=>readImportFile(e,false));
+  $('jsonInput').addEventListener('change',e=>readImportFile(e,true));
   $('addSingleTop').addEventListener('click',openSingle);
   $('closeSingle').addEventListener('click',closeSingle);
   $('singleCancel').addEventListener('click',closeSingle);
