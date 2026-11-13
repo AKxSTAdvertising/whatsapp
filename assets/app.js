@@ -392,7 +392,7 @@
   clearWhatsAppReturn();$('whatsappReturnBackdrop').hidden=true;$('whatsappReturnBackdrop').dataset.shown='';
   render();if($('waRows'))renderWhatsAppPage();
   if(wasConnected){activeView='contacted';updateNavigation();location.hash='leads'}
-  if(status==='Contacted'){activeView='messageSent';updateNavigation();location.hash='leads'}
+  if(status==='Interested'){activeView='interested';updateNavigation();location.hash='leads'}
   if(status)notify('Lead status updated: '+status+'.');
  }
  function openWhatsApp(){const l=persistModal();if(l)directWhatsApp(l,activeMessage(l))}
