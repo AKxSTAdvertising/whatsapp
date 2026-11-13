@@ -103,4 +103,24 @@
  <p class="auth-foot">No public signup. Ask your Supabase administrator for an invited account.</p></div></section>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.js" defer></script>
 <script src="./assets/cloud.js?v=11" defer></script>
-<script src="./assets/app.js?v=27" defer></script></body></html>
+<script src="./assets/app.js?v=28" defer></script>
+<script>
+window.addEventListener('DOMContentLoaded',function(){
+ const form=document.getElementById('loginForm');
+ if(!form||form.dataset.loginBound==='1')return;
+ form.addEventListener('submit',async function(event){
+  event.preventDefault();
+  const button=document.getElementById('loginButton');
+  const error=document.getElementById('loginError');
+  button.disabled=true;button.textContent='Signing in…';error.textContent='Connecting to secure login…';
+  try{
+   if(!window.UnboxedCloud)throw new Error('Login service did not load. Refresh the page and try again.');
+   await window.UnboxedCloud.ready();
+   await window.UnboxedCloud.signIn(document.getElementById('loginEmail').value.trim(),document.getElementById('loginPassword').value);
+   error.textContent='Sign-in successful. Opening your workspace…';
+   window.location.reload();
+  }catch(e){error.textContent=e&&e.message?e.message:'Sign-in failed. Please try again.';console.error('Backup login failed:',e);}
+  finally{button.disabled=false;button.textContent='Sign in securely →';}
+ });
+});
+</script></body></html>
