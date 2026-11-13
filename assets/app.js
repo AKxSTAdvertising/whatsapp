@@ -302,14 +302,18 @@
  function activeMessage(l){return currentDraft(l)}
  function directWhatsApp(l,message){
   const phone=cleanNumber(l.Phone);if(!phone){notify('Please enter a valid phone number.');return}
-  if(!l.consent){notify('Confirm this contact\'s permission in WhatsApp Outreach first.');return}
+  if(!l.consent){notify('Confirm this contact\\'s permission in WhatsApp Outreach first.');return}
   const suffix=message?'&text='+encodeURIComponent(message):'';
   const nativeUrl='whatsapp://send?phone='+phone+suffix;
   const webUrl='https://web.whatsapp.com/send?phone='+phone+suffix;
   const fallback=$('waWebFallback');if(fallback){fallback.href=webUrl;fallback.hidden=false}
-  pendingWhatsAppId=l.id;try{localStorage.setItem('unboxedthinking.pendingWhatsAppLead',l.id);sessionStorage.removeItem('unboxedthinking.whatsappAway')}catch(e){}
+  pendingWhatsAppId=l.id;
+  try{
+   localStorage.setItem('unboxedthinking.pendingWhatsAppLead',l.id);
+   // Set before opening WhatsApp; Android may not fire visibilitychange reliably.
+   sessionStorage.setItem('unboxedthinking.whatsappAway','1');
+  }catch(e){}
   render();if($('waRows'))renderWhatsAppPage();
-  // Opens installed app directly, subject to browser/OS protocol approval.
   window.location.href=nativeUrl;
   notify('Opening WhatsApp app. If unavailable, use the direct Web link in Manage.')
  }
@@ -454,6 +458,7 @@
     $('whatsappReturnBackdrop').dataset.shown='';
     selected.clear();cloudReady=true;markSynced();page=1;render();renderMessageManager();
     document.body.classList.remove('auth-locked');$('authGate').hidden=true;
+    showWhatsAppReturn();
     $('loginError').textContent='';
     const previous=JSON.parse(localStorage.getItem(KEY)||'[]');
     if(Array.isArray(previous)&&previous.length&&confirm('Found '+previous.length+' leads from your earlier browser-only version. Merge these into your private Supabase account?')){
