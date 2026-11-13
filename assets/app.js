@@ -292,7 +292,7 @@
    '<p class="workflow-hint">'+(isNew(l)?'After you press Send in WhatsApp, click <b>Mark as Sent</b> to move this business to <b>Contacted Leads</b>.':'This lead is in <b>Contacted Leads</b>. The WhatsApp button uses the second message.')+'</p>'+
    '<div class="modal-actions"><button class="btn btn-primary" id="saveLead">Save changes</button><button class="btn btn-outline" id="copyPitch">Copy active message</button><button class="btn btn-whatsapp" id="waLead">WhatsApp App ↗</button><button class="btn btn-outline" id="callLead">Call</button></div>'+
    '<div class="whatsapp-fallback"><a id="waWebFallback" href="#" target="_blank" rel="noopener noreferrer" hidden>App unavailable? Open WhatsApp Web directly ↗</a></div>'+
-   '<div class="modal-actions workflow-actions"><button class="btn btn-outline" id="markSent" '+(!isNew(l)?'disabled':'')+'>✓ Mark as Sent</button><button class="btn btn-outline" id="markReplied" '+(isNew(l)?'disabled':'')+'>✓ Mark as Replied</button><button class="btn btn-outline" id="markFollowup" '+(isNew(l)?'disabled':'')+'>◷ Follow-up Sent</button></div>';
+   '<div class="modal-actions workflow-actions"><button class="btn btn-outline" id="markSent">✓ Message Sent</button><button class="btn btn-outline" id="moveToNew">↶ Move to New Leads</button><button class="btn btn-outline" id="markFollowup" '+(isNew(l)?'disabled':'')+'>◷ Follow-up Sent</button></div>';
   const statusSelect=$('detailStatus');
   const syncFollowupFields=()=>{
    const show=statusSelect.value==='Follow-up';
@@ -305,9 +305,47 @@
   statusSelect.addEventListener('change',syncFollowupFields);
   statusSelect.addEventListener('input',syncFollowupFields);
   syncFollowupFields();
+  const statusSelect=$('detailStatus');
+  let previousStatus=l.status||'New';
+  const syncFollowupFields=()=>{
+   const show=statusSelect.value==='Follow-up';
+   $('followupTimeField').hidden=!show;
+   $('detailDate').required=show;
+   $('detailTime').required=show;
+  };
+  statusSelect.addEventListener('change',()=>{
+   const next=statusSelect.value;
+   if(next==='Follow-up'&&previousStatus!=='Follow-up'){openFollowupSchedule(previousStatus);return}
+   previousStatus=next;syncFollowupFields();
+  });
+  syncFollowupFields();
   $('detailBackdrop').hidden=false;document.body.style.overflow='hidden';$('closeDetail').focus()
  }
  function closeLead(){activeId=null;$('detailBackdrop').hidden=true;document.body.style.overflow=''}
+ function openFollowupSchedule(previousStatus){
+  const backdrop=$('followupScheduleBackdrop');
+  $('scheduleFollowupDate').value=$('detailDate')?.value||day();
+  $('scheduleFollowupTime').value=$('detailTime')?.value||'';
+  backdrop.dataset.previousStatus=previousStatus||'New';
+  backdrop.hidden=false;
+  $('scheduleFollowupDate').focus();
+ }
+ function closeFollowupSchedule(saveSchedule){
+  const backdrop=$('followupScheduleBackdrop');
+  const date=$('scheduleFollowupDate').value,time=$('scheduleFollowupTime').value;
+  if(saveSchedule&&(!date||!time)){notify('Follow-up ke liye date aur time dono select karna mandatory hai.');return}
+  if(saveSchedule){
+   $('detailDate').value=date;$('detailTime').value=time;
+   $('detailStatus').value='Follow-up';$('followupTimeField').hidden=false;
+   $('detailDate').required=true;$('detailTime').required=true;
+  }else{
+   const previous=backdrop.dataset.previousStatus||'New';
+   $('detailStatus').value=previous;
+   $('followupTimeField').hidden=previous!=='Follow-up';
+   $('detailDate').required=previous==='Follow-up';$('detailTime').required=previous==='Follow-up';
+  }
+  backdrop.hidden=true;
+ }
  function persistModal(){
   const l=leads.find(x=>x.id===activeId);if(!l)return null;
   const nextStatus=$('detailStatus').value,nextDate=$('detailDate').value,nextTime=$('detailTime').value;
@@ -347,7 +385,7 @@
  }
  function finishWhatsAppReturn(status){
   const l=leads.find(x=>x.id===pendingWhatsAppId);
-  if(l&&status==='Follow-up'){clearWhatsAppReturn();$('whatsappReturnBackdrop').hidden=true;$('whatsappReturnBackdrop').dataset.shown='';openLead(l.id);$('detailStatus').value='Follow-up';$('followupTimeField').hidden=false;$('detailDate').required=true;$('detailTime').required=true;notify('Follow-up set karne ke liye date aur time select karke Save changes karein.');return}
+  if(l&&status==='Follow-up'){clearWhatsAppReturn();$('whatsappReturnBackdrop').hidden=true;$('whatsappReturnBackdrop').dataset.shown='';openLead(l.id);$('detailStatus').value='Follow-up';openFollowupSchedule(l.status||'New');notify('Follow-up ki date aur time select karein, phir Save changes dabayein.');return}
   if(l&&status){
    l.status=status;l.updated=stamp();
    if(status==='Contacted'||status==='Connected')l.sentAt=l.sentAt||stamp();
@@ -359,6 +397,7 @@
   clearWhatsAppReturn();$('whatsappReturnBackdrop').hidden=true;$('whatsappReturnBackdrop').dataset.shown='';
   render();if($('waRows'))renderWhatsAppPage();
   if(wasConnected){activeView='contacted';updateNavigation();location.hash='leads'}
+  if(status==='Contacted'){activeView='messageSent';updateNavigation();location.hash='leads'}
   if(status)notify('Lead status updated: '+status+'.');
  }
  function openWhatsApp(){const l=persistModal();if(l)directWhatsApp(l,activeMessage(l))}
@@ -372,13 +411,18 @@
   notify('Lead marked as Connected and moved to Connected Leads.');
  }
  function markAction(kind){
+  if(kind==='new'){
+   const l=leads.find(x=>x.id===activeId);if(!l)return;
+   l.status='New';l.followup='';l.followupTime='';l.updated=stamp();
+   save();closeLead();activeView='new';updateNavigation();location.hash='leads';
+   notify('Lead moved back to New Leads.');return;
+  }
   const l=persistModal();if(!l)return;
   if(kind==='sent'){l.status='Contacted';l.sentAt=l.sentAt||stamp()}
-  if(kind==='replied'){l.status='Replied';l.repliedAt=stamp()}
-  if(kind==='followup'){if(!l.followup||!l.followupTime){notify('Set follow-up date and time before marking it.');openLead(l.id);return}l.status='Follow-up';l.followupSentAt=stamp()}
+  if(kind==='followup'){if(!l.followup||!l.followupTime){notify('Set follow-up date and time before marking it.');openFollowupSchedule(l.status||'New');return}l.status='Follow-up';l.followupSentAt=stamp()}
   l.updated=stamp();save();render();closeLead();
   if(kind==='sent'){activeView='messageSent';updateNavigation();location.hash='leads'}
-  notify(kind==='sent'?'Moved to Contacted Leads.':kind==='replied'?'Reply recorded manually.':'Follow-up recorded manually.')
+  notify(kind==='sent'?'Moved to Message Sent module.':'Follow-up recorded manually.')
  }
  function updateNavigation(){
   document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active',a.dataset.nav===activeView));
@@ -424,6 +468,9 @@
   $('fileInput').addEventListener('change',e=>readImportFile(e,false));
   $('whatsappReturnChoices').addEventListener('click',e=>{const b=e.target.closest('[data-return-status]');if(b)finishWhatsAppReturn(b.dataset.returnStatus)});
   $('whatsappReturnSkip').addEventListener('click',()=>finishWhatsAppReturn(''));
+  $('scheduleFollowupSave').addEventListener('click',()=>closeFollowupSchedule(true));
+  $('scheduleFollowupCancel').addEventListener('click',()=>closeFollowupSchedule(false));
+  $('followupScheduleBackdrop').addEventListener('click',e=>{if(e.target===$('followupScheduleBackdrop'))closeFollowupSchedule(false)});
   $('whatsappReturnBackdrop').addEventListener('click',e=>{if(e.target===$('whatsappReturnBackdrop'))finishWhatsAppReturn('')});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){if(pendingWhatsAppId)try{sessionStorage.setItem('unboxedthinking.whatsappAway','1')}catch(e){}}else showWhatsAppReturn()});
   window.addEventListener('focus',showWhatsAppReturn);
@@ -457,9 +504,9 @@
   document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open);const wa=e.target.closest('[data-whatsapp]');if(wa)quickWhatsApp(wa.dataset.whatsapp)});
   document.addEventListener('change',e=>{const connect=e.target.closest('[data-connect-status]');if(connect&&connect.value==='Connected')markConnected(connect.dataset.connectStatus)});
   $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});
-   $('detailContent').addEventListener('change',e=>{if(e.target.id==='detailStatus'){const show=e.target.value==='Follow-up';$('followupTimeField').hidden=!show;$('detailDate').required=show;$('detailTime').required=show;if(show)$('detailDate').focus()}});
+   $('detailContent').addEventListener('change',e=>{if(e.target.id==='detailStatus'&&e.target.value==='Follow-up')openFollowupSchedule('New')});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('singleBackdrop').hidden)closeSingle();else if(!$('detailBackdrop').hidden)closeLead()}});
-  $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){const saved=persistModal();if(saved)notify('Changes queued for Supabase sync.')}if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){$(isNew(l)?'detailPitch':'detailFollowupPitch').select();notify('Select and copy your message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='markReplied')markAction('replied');if(id==='markFollowup')markAction('followup');if(id==='goMessageManager'){closeLead();activeView='messages';updateNavigation()}});
+  $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){const saved=persistModal();if(saved)notify('Changes queued for Supabase sync.')}if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){$(isNew(l)?'detailPitch':'detailFollowupPitch').select();notify('Select and copy your message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='moveToNew')markAction('new');if(id==='markFollowup')markAction('followup');if(id==='goMessageManager'){closeLead();activeView='messages';updateNavigation()}});
   $('openFirst').addEventListener('click',()=>{const l=filtered()[0];if(l)openLead(l.id);else notify('Import leads first.')});
   $('mobileMenu').addEventListener('click',()=>$('mobileMenu').closest('.app-shell').querySelector('.sidebar').classList.toggle('is-open'));
   document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{activeView=a.dataset.nav;updateNavigation();document.querySelector('.sidebar').classList.remove('is-open')}));
