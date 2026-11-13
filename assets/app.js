@@ -335,6 +335,7 @@
  }
  function finishWhatsAppReturn(status){
   const l=leads.find(x=>x.id===pendingWhatsAppId);
+  if(l&&status==='Follow-up'){clearWhatsAppReturn();$('whatsappReturnBackdrop').hidden=true;$('whatsappReturnBackdrop').dataset.shown='';openLead(l.id);$('detailStatus').value='Follow-up';$('followupTimeField').hidden=false;$('detailDate').required=true;$('detailTime').required=true;notify('Follow-up set karne ke liye date aur time select karke Save changes karein.');return}
   if(l&&status){
    l.status=status;l.updated=stamp();
    if(status==='Contacted'||status==='Connected')l.sentAt=l.sentAt||stamp();
@@ -443,7 +444,8 @@
   $('prevPage').addEventListener('click',()=>{page--;render()});$('nextPage').addEventListener('click',()=>{page++;render()});
   document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open);const wa=e.target.closest('[data-whatsapp]');if(wa)quickWhatsApp(wa.dataset.whatsapp)});
   document.addEventListener('change',e=>{const connect=e.target.closest('[data-connect-status]');if(connect&&connect.value==='Connected')markConnected(connect.dataset.connectStatus)});
-  $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});\n   $('detailContent').addEventListener('change',e=>{if(e.target.id==='detailStatus'){const show=e.target.value==='Follow-up';$('followupTimeField').hidden=!show;$('detailDate').required=show;$('detailTime').required=show;if(show)$('detailDate').focus()}});
+  $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});
+   $('detailContent').addEventListener('change',e=>{if(e.target.id==='detailStatus'){const show=e.target.value==='Follow-up';$('followupTimeField').hidden=!show;$('detailDate').required=show;$('detailTime').required=show;if(show)$('detailDate').focus()}});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('singleBackdrop').hidden)closeSingle();else if(!$('detailBackdrop').hidden)closeLead()}});
   $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){const saved=persistModal();if(saved)notify('Changes queued for Supabase sync.')}if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){$(isNew(l)?'detailPitch':'detailFollowupPitch').select();notify('Select and copy your message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='markReplied')markAction('replied');if(id==='markFollowup')markAction('followup');if(id==='goMessageManager'){closeLead();activeView='messages';updateNavigation()}});
   $('openFirst').addEventListener('click',()=>{const l=filtered()[0];if(l)openLead(l.id);else notify('Import leads first.')});
