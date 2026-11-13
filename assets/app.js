@@ -110,9 +110,9 @@
   return result
  }
  function options(select,values,label){const keep=select.value;select.innerHTML='<option value="">All '+safe(label)+'</option>'+[...new Set(values.filter(Boolean))].sort().map(v=>'<option value="'+safe(v)+'">'+safe(v)+'</option>').join('');select.value=keep}
- function render(){let today=day(),contacted=leads.filter(x=>x.status==='Connected').length,interested=leads.filter(x=>x.status==='Interested').length,due=leads.filter(x=>x.status==='Follow-up'&&x.followup&&x.followup<=today);
+ function render(){let contacted=leads.filter(x=>x.status==='Connected').length,interested=leads.filter(x=>x.status==='Interested').length,due=leads.filter(x=>x.status==='Follow-up').length;
   $('statTotal').textContent=leads.length.toLocaleString('en-IN');$('statContacted').textContent=contacted.toLocaleString('en-IN');$('statInterested').textContent=interested.toLocaleString('en-IN');$('statDue').textContent=due.length.toLocaleString('en-IN');$('leadCount').textContent=leads.length.toLocaleString('en-IN');
-  $('overviewLeadRows').innerHTML=leads.slice().sort((a,b)=>val(b,'updated').localeCompare(val(a,'updated'))).map(l=>'<tr><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone||'—')+'</td><td>'+badge(l.status||'New','status')+'</td><td>'+safe(l.updated?new Date(l.updated).toLocaleDateString('en-IN'):'—')+'</td></tr>').join('');
+  $('overviewLeadRows').innerHTML=leads.slice().sort((a,b)=>val(b,'updated').localeCompare(val(a,'updated'))).map(l=>'<tr><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone||'—')+'</td><td>'+badge(l.status||'New','status')+'</td><td>'+safe(l.updated?new Date(l.updated).toLocaleDateString('en-IN'):'—')+'</td><td><button class="mini-btn" data-open="'+safe(l.id)+'">Manage</button></td></tr>').join('');
   $('overviewLeadTotal').textContent=leads.length.toLocaleString('en-IN');
   $('contactedNavCount').textContent=contacted.toLocaleString('en-IN');
   $('interestedNavCount').textContent=interested.toLocaleString('en-IN');
@@ -504,7 +504,7 @@
   $('clearBtn').addEventListener('click',async()=>{if(confirm('Permanently delete ALL CRM leads from your Supabase account? Your shared message templates will be preserved. This cannot be undone.')){try{await syncQueue;const removed=await window.UnboxedCloud.clear();leads=[];selected.clear();markSynced();page=1;render();notify('Deleted '+removed+' leads from your cloud CRM.')}catch(e){notify('Could not delete leads: '+e.message)}}});
   for(const id of ['search','statusFilter','priorityFilter','websiteFilter','sort'])$(id).addEventListener(id==='search'?'input':'change',()=>{page=1;render()});
   $('prevPage').addEventListener('click',()=>{page--;render()});$('nextPage').addEventListener('click',()=>{page++;render()});
-  document.addEventListener('click',e=>{const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open);const wa=e.target.closest('[data-whatsapp]');if(wa)quickWhatsApp(wa.dataset.whatsapp)});
+  document.addEventListener('click',e=>{const overviewNav=e.target.closest('[data-overview-nav]');if(overviewNav){activeView=overviewNav.dataset.overviewNav;updateNavigation();document.querySelector('.sidebar').classList.remove('is-open');return}const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open);const wa=e.target.closest('[data-whatsapp]');if(wa)quickWhatsApp(wa.dataset.whatsapp)});
   document.addEventListener('change',e=>{const connect=e.target.closest('[data-connect-status]');if(connect&&connect.value==='Connected')markConnected(connect.dataset.connectStatus)});
   $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});
    document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('singleBackdrop').hidden)closeSingle();else if(!$('detailBackdrop').hidden)closeLead()}});
