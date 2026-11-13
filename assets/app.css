@@ -112,3 +112,16 @@ body.auth-locked .app-shell{display:none}
 .overview-all-leads .table-panel{overflow:hidden}
 .overview-all-leads .table-scroller{max-height:65vh;overflow:auto}
 .overview-all-leads table{min-width:620px}
+
+/* Proper module icons and independent refresh controls */
+.nav-link{gap:13px;min-height:45px}
+.nav-link .nav-icon{width:19px;height:19px;flex:0 0 19px;opacity:.92}
+.nav-link.active .nav-icon{color:#c9bcff}
+.module-refresh{gap:8px;min-width:94px}
+.module-refresh svg,.button-icon{width:15px;height:15px;display:block;flex:0 0 15px}
+.module-refresh.is-refreshing svg{animation:moduleRefreshSpin .8s linear infinite}
+@keyframes moduleRefreshSpin{to{transform:rotate(360deg)}}
+.module-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.panel-head .module-actions{justify-content:flex-end}
+.settings .module-refresh{margin-top:13px}
+@media(max-width:575px){.module-actions{width:100%}.panel-head .module-actions{width:auto}.module-refresh{min-height:34px}}
