@@ -13,7 +13,8 @@
  <nav class="side-nav" aria-label="Workspace navigation">
  <a href="#overview" class="nav-link active" data-nav="overview"><span>◫</span> Overview</a>
  <a href="#leads" class="nav-link" data-nav="new"><span>✦</span> New Leads</a>
- <a href="#leads" class="nav-link" data-nav="contacted"><span>◉</span> Connected Leads <span class="nav-count" id="contactedNavCount">0</span></a>
+ <a href="#leads" class="nav-link" data-nav="messageSent"><span>✉</span> Message Sent</a>
+  <a href="#leads" class="nav-link" data-nav="contacted"><span>◉</span> Connected Leads <span class="nav-count" id="contactedNavCount">0</span></a>
  <a href="#leads" class="nav-link" data-nav="all"><span>☷</span> All Leads</a>
   <a href="#leads" class="nav-link" data-nav="notinterested"><span>⊘</span> Not Interested</a>
  <a href="#followups" class="nav-link" data-nav="followups"><span>◷</span> Follow-ups</a>
@@ -34,6 +35,7 @@
  <div class="stat"><span>INTERESTED</span><strong id="statInterested">0</strong><small>Positive responses</small><i class="stat-mark green">✦</i></div>
  <div class="stat"><span>DUE FOLLOW-UPS</span><strong id="statDue">0</strong><small>Today & overdue</small><i class="stat-mark orange">◷</i></div>
 </section>
+<section class="overview-all-leads" aria-label="All leads overview"><div class="section-header"><div><p class="overline">READ-ONLY SNAPSHOT</p><h2>All Leads <span class="count" id="overviewLeadTotal">0</span></h2><p class="directory-sub">Complete lead list with current status. This overview is read-only; use the dedicated modules to manage leads.</p></div></div><div class="table-panel"><div class="table-scroller"><table><thead><tr><th>BUSINESS</th><th>PHONE</th><th>STATUS</th><th>LAST UPDATED</th></tr></thead><tbody id="overviewLeadRows"></tbody></table></div></div></section>
 <section class="workspace" id="leads">
  <div class="section-header"><div><p class="overline">MANAGE YOUR PIPELINE</p><h2><span id="directoryHeading">New leads</span> <span class="count" id="leadCount">0</span></h2><p class="directory-sub" id="directoryHint">Leads awaiting their first message. Select a lead to write your own WhatsApp message.</p></div><div class="toolbar"><button class="btn btn-outline" id="exportBtn">↧ Export CSV</button><button class="btn btn-outline" id="backupBtn">↧ Full backup</button></div></div>
  <div class="bulk-toolbar"><label class="bulk-check"><input id="selectAllMatching" type="checkbox"> Select all filtered leads</label><span id="selectedCount">0 selected</span><button class="btn btn-danger btn-small" id="bulkDeleteBtn" disabled>Delete selected</button></div>
