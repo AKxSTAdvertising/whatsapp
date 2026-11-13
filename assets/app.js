@@ -195,7 +195,7 @@
 
  function followupSuggestion(l){return 'Hi, I wanted to follow up on my earlier message about '+(l['Business Name']||'your business')+'. Would you be open to a short conversation? No worries if not.'}
  function isNew(l){return l.status==='New'}
- function connectionSelect(l){return '<select class="connect-select" data-connect-status="'+safe(l.id)+'" aria-label="Mark '+safe(l['Business Name']||'lead')+' as connected"><option value="">Mark as Connected</option><option value="Connected">Connected</option></select>;}
+ function connectionSelect(l){return '<select class="connect-select" data-connect-status="'+safe(l.id)+'" aria-label="Mark '+safe(l['Business Name']||'lead')+' as connected"><option value="">Mark as Connected</option><option value="Connected">Connected</option></select>';}
  function fillTemplate(template,l){
   return String(template||'').replace(/\{\{\s*(business_name|niche|founder)\s*\}\}/gi,(_,key)=>{
    const map={'business_name':l['Business Name']||'there','niche':l.Niche||'your industry','founder':l.Founder||''};
