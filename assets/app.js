@@ -47,7 +47,7 @@
  const CSV_ALIASES={
   'Business Name':['businessname','business','companyname','companybusinessname','businesscompanyname','company','organization','organisation','firmname','brandname','brand','name'],
   'Phone':['phone','phonenumber','mobile','mobilenumber','contactnumber','contact','whatsappnumber','whatsapp','telephone','tel'],
-  'Niche':['niche','industry','category','businesscategory','type'],
+  'Niche':['niche','industry','category','businesscategory','type','categories'],
   'Founder':['founder','owner','contactperson','personname','decisionmaker'],
   'Email':['email','emailaddress','mail'],
   'Address':['address','location','fulladdress','businessaddress'],
@@ -72,7 +72,7 @@
   }
   return -1
  }
- function normalize(o){const d={};for(const k of HEADERS)d[k]=val(o,k);return {...d,id:String(o.id||uid()),status:STATUS.includes(o.status)?o.status:'New',followup:String(o.followup||''),followupTime:String(o.followupTime||''),notes:String(o.notes||''),consent:o.consent===true,updated:String(o.updated||stamp()),firstDraft:String(o.firstDraft||''),followupDraft:String(o.followupDraft||''),sentAt:String(o.sentAt||''),repliedAt:String(o.repliedAt||''),followupSentAt:String(o.followupSentAt||'')}}
+ function normalize(o){const d={};for(const k of HEADERS)d[k]=val(o,k);d.Niche=String(d.Niche||'').trim()||'Uncategorized';return {...d,id:String(o.id||uid()),status:STATUS.includes(o.status)?o.status:'New',followup:String(o.followup||''),followupTime:String(o.followupTime||''),notes:String(o.notes||''),consent:o.consent===true,updated:String(o.updated||stamp()),firstDraft:String(o.firstDraft||''),followupDraft:String(o.followupDraft||''),sentAt:String(o.sentAt||''),repliedAt:String(o.repliedAt||''),followupSentAt:String(o.followupSentAt||'')}}
  function importCSV(text){const rows=parseCSV(text);if(rows.length<2)throw new Error('CSV does not contain any lead rows.');
   const header=rows.shift().map(h=>String(h||'').replace(/^\uFEFF/,'').trim().toLowerCase().replace(/[^a-z0-9]/g,''));
   const phoneIndex=csvHeaderIndex(header,'Phone');if(phoneIndex<0)throw new Error('Phone column not found. Use Phone, Mobile, Mobile Number or Contact Number.');
@@ -95,9 +95,9 @@
  function csvCell(x){let s=String(x??'');if(/^[\s]*[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
  function download(name,blob){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  function downloadCSVTemplate(){
-  const out=[HEADERS.map(csvCell).join(',')];
+  const out=[HEADERS.map(k=>csvCell(k==='Niche'?'Category':k)).join(',')];
   download('unboxedthinking-leads-template.csv',new Blob(['\uFEFF'+out.join('\r\n')],{type:'text/csv;charset=utf-8'}));
-  notify('CSV import template downloaded. Fill Business Name and Phone, then import it.');
+  notify('CSV template downloaded. Fill Business Name, Phone and Category; blank categories will go to Uncategorized.');
  }
  function exportCSV(){if(!leads.length){notify('Import leads first.');return}
   const cols=[...HEADERS,'Status','Follow-up Date','Follow-up Time','Notes','Contact Permission','First Draft','Followup Draft','Sent At','Replied At','Followup Sent At','Updated'];
@@ -118,7 +118,7 @@
   $('interestedNavCount').textContent=interested.toLocaleString('en-IN');
   $('directoryHeading').textContent={new:'New leads',contacted:'Connected leads',interested:'Interested',all:'All leads',notinterested:'Not Interested',messageSent:'Message Sent',followups:'Follow-ups'}[activeView]||'Leads';
   $('directoryHint').textContent={new:'Write your first message; after sending, update the lead status.',contacted:'Only leads marked Connected appear here.',interested:'Leads marked Interested appear here. Manage each lead to update its status.',all:'Your entire pipeline.',notinterested:'Leads marked Not Interested. Select any lead and use Delete selected to remove it permanently.',messageSent:'Leads whose first message has been marked as sent.',followups:'Only leads with an active Follow-up status and a saved date and time appear here.'}[activeView]||'Your lead pipeline.';
-  options($('nicheFilter'),leads.map(l=>String(l.Niche||'').trim()),'categories');options($('priorityFilter'),leads.map(l=>l['Lead Priority']),'priorities');options($('websiteFilter'),leads.map(l=>l['Website Status']),'website statuses');
+  options($('nicheFilter'),['Uncategorized',...leads.map(l=>String(l.Niche||'').trim()||'Uncategorized')],'categories');options($('priorityFilter'),leads.map(l=>l['Lead Priority']),'priorities');options($('websiteFilter'),leads.map(l=>l['Website Status']),'website statuses');
   const list=filtered(),per=15,pages=Math.max(1,Math.ceil(list.length/per));page=Math.min(page,pages);const slice=list.slice((page-1)*per,page*per);
   $('leadRows').innerHTML=slice.map(l=>'<tr><td><input class="lead-select" type="checkbox" data-select="'+safe(l.id)+'" aria-label="Select '+safe(l['Business Name']||'lead')+'" '+(selected.has(l.id)?'checked':'')+'></td><td><strong>'+safe(l['Business Name']||'Unnamed business')+'</strong><small>'+safe(l.Niche||'Uncategorised')+'</small></td><td>'+safe(l.Phone)+'</td><td>'+badge(l['Lead Priority'],'priority')+'</td><td>'+safe(l['Website Status']||'Unknown')+'</td><td>'+badge(l.status,'status')+'</td><td>'+safe(l.followup||'—')+'</td><td><div class="row-actions"><button class="mini-btn mini-wa" data-whatsapp="'+safe(l.id)+'">WhatsApp ↗</button>'+(pendingWhatsAppId===l.id?connectionSelect(l):'')+'<button class="mini-btn" data-open="'+safe(l.id)+'">Manage</button></div></td></tr>').join('');
   updateSelectionControls(list,slice);
