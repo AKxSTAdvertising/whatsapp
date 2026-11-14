@@ -515,7 +515,7 @@
   $('exportBtn').addEventListener('click',exportCSV);$('backupBtn').addEventListener('click',backup);$('downloadTemplateBtn').addEventListener('click',downloadCSVTemplate);
   $('restoreInfo').addEventListener('click',()=>notify('Full backup saves status, notes and permissions. Import that JSON to restore them. CSV export is for spreadsheet use.'));
   $('clearBtn').addEventListener('click',async()=>{if(confirm('Permanently delete ALL CRM leads from your Supabase account? Your shared message templates will be preserved. This cannot be undone.')){try{await syncQueue;const removed=await window.UnboxedCloud.clear();leads=[];selected.clear();markSynced();page=1;render();notify('Deleted '+removed+' leads from your cloud CRM.')}catch(e){notify('Could not delete leads: '+e.message)}}});
-  for(const id of ['search','statusFilter','nicheFilter','dateFilter','priorityFilter','websiteFilter','sort'])$(id).addEventListener(id==='search'?'input':'change',()=>{page=1;render()});
+  for(const id of ['search','statusFilter','nicheFilter','priorityFilter','websiteFilter','sort'])$(id).addEventListener(id==='search'?'input':'change',()=>{page=1;render()});
   $('prevPage').addEventListener('click',()=>{page--;render()});$('nextPage').addEventListener('click',()=>{page++;render()});
 
   document.addEventListener('change',e=>{const connect=e.target.closest('[data-connect-status]');if(connect&&connect.value==='Connected')markConnected(connect.dataset.connectStatus)});
