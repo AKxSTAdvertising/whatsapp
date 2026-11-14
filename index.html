@@ -89,7 +89,7 @@
 <div class="detail-fields">
 <div class="field wide"><label for="singleName">Business name *</label><input id="singleName" name="business" maxlength="180" required placeholder="Business name"></div>
 <div class="field wide"><label for="singlePhone">Phone number *</label><input id="singlePhone" name="phone" type="tel" inputmode="tel" maxlength="30" required placeholder="+91 98765 43210"><small>10-digit Indian number or international format with country code.</small></div>
-<div class="field"><label for="singleNiche">Niche</label><input id="singleNiche" maxlength="120" placeholder="Restaurant, salon, etc."></div>
+<div class="field"><label for="singleNiche">Category</label><input id="singleNiche" maxlength="120" placeholder="Restaurant, salon, etc. (blank = Uncategorized)"></div>
 <div class="field"><label for="singlePriority">Priority</label><select id="singlePriority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
 <div class="field"><label for="singleWebsiteStatus">Website status</label><select id="singleWebsiteStatus"><option value="">Unknown</option><option>No website</option><option>Has website</option></select></div>
 <div class="field"><label for="singleWebsite">Website URL</label><input id="singleWebsite" maxlength="250" placeholder="example.com"></div>
@@ -107,7 +107,7 @@
  <p class="auth-foot">No public signup. Ask your Supabase administrator for an invited account.</p></div></section>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.js" defer></script>
 <script src="./assets/cloud.js?v=11" defer></script>
-<script src="./assets/app.js?v=45" defer></script>
+<script src="./assets/app.js?v=46" defer></script>
 <script>
 window.addEventListener('DOMContentLoaded',function(){
  const form=document.getElementById('loginForm');
