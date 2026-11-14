@@ -517,11 +517,11 @@
   $('clearBtn').addEventListener('click',async()=>{if(confirm('Permanently delete ALL CRM leads from your Supabase account? Your shared message templates will be preserved. This cannot be undone.')){try{await syncQueue;const removed=await window.UnboxedCloud.clear();leads=[];selected.clear();markSynced();page=1;render();notify('Deleted '+removed+' leads from your cloud CRM.')}catch(e){notify('Could not delete leads: '+e.message)}}});
   for(const id of ['search','statusFilter','nicheFilter','dateFilter','priorityFilter','websiteFilter','sort'])$(id).addEventListener(id==='search'?'input':'change',()=>{page=1;render()});
   $('prevPage').addEventListener('click',()=>{page--;render()});$('nextPage').addEventListener('click',()=>{page++;render()});
-  document.addEventListener('click',e=>{const overviewNav=e.target.closest('[data-overview-nav]');if(overviewNav){activeView=overviewNav.dataset.overviewNav;updateNavigation();document.querySelector('.sidebar').classList.remove('is-open');return}const target=e.target.closest('[data-open]');if(target)openLead(target.dataset.open);const wa=e.target.closest('[data-whatsapp]');if(wa)quickWhatsApp(wa.dataset.whatsapp)});
+
   document.addEventListener('change',e=>{const connect=e.target.closest('[data-connect-status]');if(connect&&connect.value==='Connected')markConnected(connect.dataset.connectStatus)});
   $('closeDetail').addEventListener('click',closeLead);$('detailBackdrop').addEventListener('click',e=>{if(e.target===$('detailBackdrop'))closeLead()});
    document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('singleBackdrop').hidden)closeSingle();else if(!$('detailBackdrop').hidden)closeLead()}});
-  $('detailContent').addEventListener('click',async e=>{const id=e.target.id;if(id==='saveLead'){const saved=persistModal();if(saved){notify('Changes queued for Supabase sync.');if(leads.find(x=>x.id===activeId)?.status==='Interested'){closeLead();activeView='interested';updateNavigation();location.hash='leads';}}}if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){$(isNew(l)?'detailPitch':'detailFollowupPitch').select();notify('Select and copy your message.')}}if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='moveToNew')markAction('new');if(id==='markFollowup')markAction('followup');if(id==='goMessageManager'){closeLead();activeView='messages';updateNavigation()}});
+
   $('openFirst').addEventListener('click',()=>{const l=filtered()[0];if(l)openLead(l.id);else notify('Import leads first.')});
   $('mobileMenu').addEventListener('click',()=>$('mobileMenu').closest('.app-shell').querySelector('.sidebar').classList.toggle('is-open'));
   document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{activeView=a.dataset.nav;updateNavigation();document.querySelector('.sidebar').classList.remove('is-open')}));
@@ -570,6 +570,23 @@
    }catch(err){$('loginError').textContent=err.message||'Sign-in failed';console.error('Login failed:',err)}
    finally{b.disabled=false;b.textContent='Sign in securely →'}
   });
+  // Install core CRM click actions before optional UI bindings, so one missing
+  // control cannot disable Manage / WhatsApp actions across the whole workspace.
+  if(!document.documentElement.dataset.crmCoreClicks){
+   document.documentElement.dataset.crmCoreClicks='1';
+   document.addEventListener('click',e=>{
+    const overviewNav=e.target.closest('[data-overview-nav]');
+    if(overviewNav){activeView=overviewNav.dataset.overviewNav;updateNavigation();document.querySelector('.sidebar')?.classList.remove('is-open');return}
+    const target=e.target.closest('[data-open]');if(target){openLead(target.dataset.open);return}
+    const wa=e.target.closest('[data-whatsapp]');if(wa){quickWhatsApp(wa.dataset.whatsapp);return}
+   });
+   $('detailContent').addEventListener('click',async e=>{
+    const id=e.target.id;
+    if(id==='saveLead'){const saved=persistModal();if(saved){notify('Changes queued for Supabase sync.');if(leads.find(x=>x.id===activeId)?.status==='Interested'){closeLead();activeView='interested';updateNavigation();location.hash='leads';}}}
+    if(id==='copyPitch'){const l=leads.find(x=>x.id===activeId);try{await navigator.clipboard.writeText(activeMessage(l));notify('Active message copied.')}catch(err){const field=$(isNew(l)?'detailPitch':'detailFollowupPitch');field?.select();notify('Select and copy your message.')}}
+    if(id==='waLead')openWhatsApp();if(id==='callLead')callLead();if(id==='markSent')markAction('sent');if(id==='moveToNew')markAction('new');if(id==='markFollowup')markAction('followup');if(id==='goMessageManager'){closeLead();activeView='messages';updateNavigation()}
+   });
+  }
   try{bind();updateNavigation();render()}catch(uiError){
    $('loginError').textContent='CRM interface setup failed: '+(uiError?.message||String(uiError));
    console.error('CRM interface initialization failed:',uiError);
