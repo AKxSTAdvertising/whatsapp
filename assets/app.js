@@ -568,8 +568,30 @@
   }catch(e){cloudReady=false;document.body.classList.add('auth-locked');$('authGate').hidden=false;$('loginError').textContent='Unable to load private leads: '+e.message;}
  }
  async function bootstrap(){
-  // Login is handled by the standalone fallback in index.html.
-  // After successful authentication it reloads; bootstrap then restores the session.
+  // Bind login before optional CRM UI setup, so a separate module error cannot disable sign-in.
+  const loginForm=$('loginForm');
+  if(loginForm&&!loginForm.dataset.loginBound){
+   loginForm.dataset.loginBound='1';
+   loginForm.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const button=$('loginButton'),error=$('loginError');
+    if(button){button.disabled=true;button.textContent='Signing in…'}
+    if(error)error.textContent='Connecting to secure login…';
+    try{
+     if(!window.UnboxedCloud)throw new Error('Login service did not load. Refresh the page and try again.');
+     await window.UnboxedCloud.ready();
+     await window.UnboxedCloud.signIn($('loginEmail').value.trim(),$('loginPassword').value);
+     if(error)error.textContent='Sign-in successful. Loading your workspace…';
+     await enterCloud();
+     if(!cloudReady)throw new Error(error?.textContent||'Could not open your private workspace.');
+    }catch(e){
+     if(error)error.textContent=e?.message||'Sign-in failed. Please try again.';
+     console.error('CRM sign-in failed:',e);
+    }finally{
+     if(button){button.disabled=false;button.textContent='Sign in securely →'}
+    }
+   });
+  }
   // Install core CRM click actions before optional UI bindings, so one missing
   // control cannot disable Manage / WhatsApp actions across the whole workspace.
   if(!document.documentElement.dataset.crmCoreClicks){
