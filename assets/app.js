@@ -533,7 +533,8 @@
   try{
     const data=await window.UnboxedCloud.load();
     leads=data.map(normalize);
-    const savedTemplates=await window.UnboxedCloud.loadSettings();
+    let savedTemplates=null,settingsLoadError=null;
+    try{savedTemplates=await window.UnboxedCloud.loadSettings()}catch(settingsError){settingsLoadError=settingsError;console.warn('Message settings unavailable; opening lead workspace with local defaults.',settingsError)}
     if(savedTemplates&&typeof savedTemplates==='object')messageTemplates={...messageTemplates,...savedTemplates};
     const needsGeneralMigration=!Array.isArray(savedTemplates?.generalVariants)||savedTemplates.generalVariants.length<50;
     ensureGeneralVariants();
@@ -543,6 +544,7 @@
     document.body.classList.remove('auth-locked');$('authGate').hidden=true;
     showWhatsAppReturn();
     $('loginError').textContent='';
+    if(settingsLoadError)notify('CRM leads loaded. Message settings cloud sync issue: '+(settingsLoadError.message||'settings unavailable'));
     const previous=JSON.parse(localStorage.getItem(KEY)||'[]');
     if(Array.isArray(previous)&&previous.length&&confirm('Found '+previous.length+' leads from your earlier browser-only version. Merge these into your private Supabase account?')){
       const existing=new Set(leads.map(dedupKey));let total=0;
