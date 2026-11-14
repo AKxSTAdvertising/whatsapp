@@ -568,21 +568,8 @@
   }catch(e){cloudReady=false;document.body.classList.add('auth-locked');$('authGate').hidden=false;$('loginError').textContent='Unable to load private leads: '+e.message;}
  }
  async function bootstrap(){
-  // Attach authentication first. A later CRM UI initialization error must never
-  // prevent the login form from receiving its submit handler.
-  $('loginForm').dataset.loginBound='1';
-  $('loginForm').addEventListener('submit',async e=>{
-   e.preventDefault();const b=$('loginButton');b.disabled=true;b.textContent='Signing in…';$('loginError').textContent='';
-   try{
-    if(!window.UnboxedCloud||typeof window.UnboxedCloud.signIn!=='function'){
-     await window.UnboxedCloud?.ready?.();
-    }
-    if(!window.UnboxedCloud||typeof window.UnboxedCloud.signIn!=='function')throw new Error(window.UnboxedCloud?.error||'Supabase login service is unavailable. Check your connection and refresh.');
-    await window.UnboxedCloud.signIn($('loginEmail').value.trim(),$('loginPassword').value);
-    $('loginPassword').value='';await enterCloud();
-   }catch(err){$('loginError').textContent=err.message||'Sign-in failed';console.error('Login failed:',err)}
-   finally{b.disabled=false;b.textContent='Sign in securely →'}
-  });
+  // Login is handled by the standalone fallback in index.html.
+  // After successful authentication it reloads; bootstrap then restores the session.
   // Install core CRM click actions before optional UI bindings, so one missing
   // control cannot disable Manage / WhatsApp actions across the whole workspace.
   if(!document.documentElement.dataset.crmCoreClicks){
