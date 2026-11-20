@@ -591,7 +591,7 @@
     if(savedTemplates&&typeof savedTemplates==='object')messageTemplates={...messageTemplates,...savedTemplates};
     const generalVariants=ensureGeneralVariants(),general2Variants=ensureGeneral2Variants();
     const needsMessageMigration=!settingsLoadError&&(savedTemplates?.generalVariantsVersion!==8||!Array.isArray(savedTemplates?.generalVariants)||savedTemplates.generalVariants.length!==50||savedTemplates?.general2VariantsVersion!==2||!Array.isArray(savedTemplates?.general2Variants)||savedTemplates.general2Variants.length!==50||!String(savedTemplates?.general2CategoryTags||'').trim());
-    if(needsMessageMigration){try{await window.UnboxedCloud.saveSettings({general:messageTemplates.general,generalVariants,generalVariantsVersion:7,general2:messageTemplates.general2,general2Variants,general2VariantsVersion:1,general2CategoryTags:messageTemplates.general2CategoryTags,followup:messageTemplates.followup});}catch(migrationError){console.warn('Could not auto-save message group migration; use Save all messages in Message Manager.',migrationError)}}
+    if(needsMessageMigration){try{await window.UnboxedCloud.saveSettings({general:messageTemplates.general,generalVariants,generalVariantsVersion:8,general2:messageTemplates.general2,general2Variants,general2VariantsVersion:2,general2CategoryTags:messageTemplates.general2CategoryTags,followup:messageTemplates.followup});}catch(migrationError){console.warn('Could not auto-save message group migration; use Save all messages in Message Manager.',migrationError)}}
     $('whatsappReturnBackdrop').dataset.shown='';
     selected.clear();cloudReady=true;markSynced();page=1;render();renderMessageManager();
     document.body.classList.remove('auth-locked');$('authGate').hidden=true;
