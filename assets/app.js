@@ -168,7 +168,7 @@
   const current=messageTemplates.general2VariantsVersion===2&&Array.isArray(messageTemplates.general2Variants)&&messageTemplates.general2Variants.length===50;
   const variants=current?messageTemplates.general2Variants.slice():DEFAULT_GENERAL2_VARIANTS.slice();
   messageTemplates.general2VariantsVersion=2;messageTemplates.general2Variants=variants;messageTemplates.general2=variants[0];
-  if(!String(messageTemplates.general2CategoryTags||'').trim()||messageTemplates.general2VariantsVersion!==2)messageTemplates.general2CategoryTags=DEFAULT_GENERAL2_CATEGORY_TAGS;
+  if(!current||!String(messageTemplates.general2CategoryTags||'').trim())messageTemplates.general2CategoryTags=DEFAULT_GENERAL2_CATEGORY_TAGS;
   return variants;
  }
  function isGeneral2Lead(l){
